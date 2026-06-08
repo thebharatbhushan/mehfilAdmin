@@ -1,0 +1,1071 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+    <title>Mehfil Admin | Complete Management Suite</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      body {
+        background: #fef9f2;
+        display: flex;
+        min-height: 100vh;
+        color: #2c241f;
+      }
+
+      .sidebar {
+        width: 270px;
+        background: rgba(255, 253, 248, 0.96);
+        backdrop-filter: blur(20px);
+        padding: 30px 22px;
+        border-right: 1px solid rgba(193, 106, 75, 0.25);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 10;
+      }
+
+      .logo {
+        font-size: 32px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #9e4f36, #c16a4b);
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        margin-bottom: 48px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .menu {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .menu a {
+        text-decoration: none;
+        color: #2c241f;
+        padding: 12px 16px;
+        border-radius: 20px;
+        transition: 0.25s ease;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+      }
+
+      .menu a i {
+        width: 26px;
+      }
+
+      .menu a:hover,
+      .menu a.active {
+        background: #c16a4b;
+        color: white;
+        box-shadow: 0 8px 18px rgba(193, 106, 75, 0.25);
+      }
+
+      .main-panel {
+        flex: 1;
+        padding: 36px 44px;
+        overflow-x: auto;
+      }
+
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 32px;
+      }
+
+      .page-header h1 {
+        font-size: 38px;
+        font-weight: 700;
+        background: linear-gradient(125deg, #9e4f36, #c16a4b);
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+
+      .btn-primary {
+        background: #c16a4b;
+        border: none;
+        color: white;
+        padding: 12px 26px;
+        border-radius: 40px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn-primary:hover {
+        background: #9e4f36;
+        transform: translateY(-2px);
+      }
+
+      .glass-table {
+        background: white;
+        border-radius: 28px;
+        padding: 20px 24px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th {
+        text-align: left;
+        padding: 18px 8px 20px 8px;
+        color: #9e4f36;
+        font-weight: 600;
+      }
+
+      td {
+        padding: 16px 8px;
+        border-bottom: 1px solid #f0e4dc;
+        vertical-align: middle;
+      }
+
+      .status-badge {
+        padding: 6px 14px;
+        border-radius: 100px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-block;
+      }
+
+      .status-active {
+        background: #e7f8eb;
+        color: #2c6e2f;
+      }
+
+      .status-blocked {
+        background: #ffe4e4;
+        color: #c23b22;
+      }
+
+      .status-approved {
+        background: #e8f0fe;
+        color: #1e6f3f;
+      }
+
+      .status-pending {
+        background: #fff3e0;
+        color: #e67e22;
+      }
+
+      .status-rejected {
+        background: #ffe4e4;
+        color: #c23b22;
+      }
+
+      .action-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .icon-btn {
+        background: none;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 30px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+      }
+
+      .icon-btn.edit {
+        background: #fff1d9;
+        color: #b56a00;
+      }
+
+      .icon-btn.delete {
+        background: #ffe4e4;
+        color: #d60000;
+      }
+
+      .icon-btn.block {
+        background: #f4e8ff;
+        color: #7b00d6;
+      }
+
+      .icon-btn.unblock {
+        background: #e0f2fe;
+        color: #0369a1;
+      }
+
+      .icon-btn.view {
+        background: #e8f0fe;
+        color: #1e6f3f;
+      }
+
+      .category-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 24px;
+      }
+
+      .category-card {
+        background: white;
+        padding: 24px;
+        border-radius: 28px;
+        text-align: center;
+        transition: 0.2s;
+        border: 1px solid #f3e7e0;
+      }
+
+      .category-card i {
+        font-size: 44px;
+        color: #c16a4b;
+        margin-bottom: 12px;
+      }
+
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .modal-container {
+        background: white;
+        width: 90%;
+        max-width: 520px;
+        border-radius: 36px;
+        padding: 32px;
+        animation: fadeUp 0.2s ease;
+      }
+
+      .modal-container h2 {
+        margin-bottom: 24px;
+        color: #9e4f36;
+      }
+
+      .modal-container input,
+      .modal-container select,
+      .modal-container textarea {
+        width: 100%;
+        padding: 14px 18px;
+        margin-bottom: 20px;
+        border: 1px solid #f0e1d8;
+        background: white;
+        border-radius: 24px;
+        font-size: 1rem;
+        outline: none;
+      }
+
+      .modal-container input:focus,
+      .modal-container select:focus {
+        border-color: #c16a4b;
+        box-shadow: 0 0 0 2px rgba(193, 106, 75, 0.2);
+      }
+
+      .search-box {
+        margin-bottom: 24px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .search-box input {
+        flex: 1;
+        padding: 12px 20px;
+        border: 1px solid #f0e1d8;
+        border-radius: 40px;
+        font-size: 14px;
+        outline: none;
+      }
+
+      .search-box select {
+        padding: 12px 20px;
+        border: 1px solid #f0e1d8;
+        border-radius: 40px;
+        background: white;
+        cursor: pointer;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 800px) {
+        body {
+          flex-direction: column;
+        }
+
+        .sidebar {
+          width: 100%;
+          height: auto;
+          position: relative;
+        }
+
+        .main-panel {
+          padding: 24px;
+        }
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #2c241f;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-size: 14px;
+        z-index: 1001;
+        animation: slideIn 0.3s ease;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      /* ENHANCED POEM CARD VIEW STYLES (for modal or preview) */
+      .poem-preview-card {
+        background: #fffef7;
+        border-radius: 32px;
+        padding: 28px;
+        box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(193, 106, 75, 0.2);
+        transition: transform 0.2s;
+      }
+
+      .poem-preview-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .poem-title-preview {
+        font-size: 28px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #9e4f36, #c16a4b);
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        margin-bottom: 12px;
+        border-left: 5px solid #c16a4b;
+        padding-left: 20px;
+      }
+
+      .poem-meta-preview {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+        color: #5a4a3e;
+        font-size: 0.9rem;
+        background: #fef5ed;
+        padding: 12px 20px;
+        border-radius: 60px;
+        align-items: center;
+      }
+
+      .poem-body-preview {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #2c241f;
+        white-space: pre-wrap;
+        background: #fffbf5;
+        padding: 20px;
+        border-radius: 28px;
+        font-style: normal;
+        border: 1px solid #f3e4da;
+        max-height: 380px;
+        overflow-y: auto;
+      }
+
+      .status-select-enhanced {
+        background: white;
+        border-radius: 40px;
+        padding: 6px 16px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+
+      .poem-row-enhanced:hover {
+        background: #fef8f2;
+        transition: 0.2s;
+      }
+
+      .badge-icon {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      
+      /* ---- Profile Picture Enlarge Styles (new, keeps everything intact) ---- */
+      .avatar-clickable {
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .avatar-clickable:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+      .profile-enlarge-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        cursor: pointer;
+        animation: fadeIn 0.2s ease;
+      }
+      .profile-enlarge-container {
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 32px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        background: #fffef7;
+        padding: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: zoomScale 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      }
+      .profile-enlarge-img {
+        max-width: 85vw;
+        max-height: 80vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 24px;
+        box-shadow: 0 0 0 2px #c16a4b, 0 10px 30px rgba(0,0,0,0.3);
+        display: block;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes zoomScale {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      .close-enlarge-hint {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255,255,240,0.9);
+        color: #2c241f;
+        padding: 8px 18px;
+        border-radius: 60px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        backdrop-filter: blur(4px);
+        pointer-events: none;
+        font-family: monospace;
+        z-index: 2001;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="sidebar">
+      <div class="logo"><i class="fa-solid fa-mosque"></i> Mehfil</div>
+      <div class="menu" id="navMenu">
+        <a data-page="dashboard"
+          ><i class="fa-solid fa-chart-line"></i> Dashboard</a
+        >
+        <a data-page="poems"><i class="fa-solid fa-book-open"></i> Poems</a>
+        <a data-page="users"><i class="fa-solid fa-users"></i> Users</a>
+        <a data-page="settings"><i class="fa-solid fa-gear"></i> Settings</a>
+      </div>
+    </div>
+
+    <div class="main-panel" id="mainPanel">
+      <div style="text-align: center; padding: 60px">Loading...</div>
+    </div>
+
+    <div id="globalModal" class="modal-overlay">
+      <div class="modal-container">
+        <h2 id="modalTitle">Modal</h2>
+        <div id="modalFields"></div>
+        <button
+          class="btn-primary"
+          id="modalSaveBtn"
+          style="width: 100%; justify-content: center"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // ======================== DATA STORES (Exactly same backend connections, untouched) ========================
+      const API_URL = "https://mehfilbackend.onrender.com/api/admin";
+
+      let users = [];
+      let poems = [];
+
+      let settings = {
+        siteName: "Mehfil",
+        tagline: "Poetry Community",
+        email: "admin@mehfil.com",
+        instagram: "",
+        facebook: "",
+        youtube: "",
+      };
+
+      function escapeHtml(str) {
+        if (!str) return "";
+        return str.replace(/[&<>]/g, (m) =>
+          m === "&" ? "&amp;" : m === "<" ? "&lt;" : "&gt;",
+        );
+      }
+
+      async function loadUsers() {
+        try {
+          const response = await fetch(`${API_URL}/users`);
+          const data = await response.json();
+          if (data.success) {
+            users = data.users;
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      async function loadPoems() {
+        try {
+          const response = await fetch(`${API_URL}/poems`);
+          const data = await response.json();
+          if (data.success) {
+            poems = data.poems;
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      function showToast(message) {
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.innerHTML = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      }
+
+      // ======================== MODAL SYSTEM (unchanged) ========================
+      let currentModalCallback = null;
+      function openModal(title, fieldsHtml, onSave) {
+        const modal = document.getElementById("globalModal");
+        document.getElementById("modalTitle").innerText = title;
+        document.getElementById("modalFields").innerHTML = fieldsHtml;
+        modal.style.display = "flex";
+        currentModalCallback = onSave;
+        const saveBtn = document.getElementById("modalSaveBtn");
+        const newBtn = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+        newBtn.addEventListener("click", () => {
+          if (currentModalCallback) currentModalCallback();
+          closeModal();
+        });
+      }
+      function closeModal() {
+        document.getElementById("globalModal").style.display = "none";
+        currentModalCallback = null;
+      }
+      window.onclick = (e) => {
+        if (e.target === document.getElementById("globalModal")) closeModal();
+      };
+
+      // ======================== DASHBOARD (untouched) ========================
+      function renderDashboard() {
+        const totalPoems = poems.length;
+        const totalUsers = users.length;
+        const pendingPoems = poems.filter((p) => p.status === "Pending").length;
+        const recentPoems = poems.slice(0, 5);
+        const html = `
+                  <div class="page-header"><h1>Dashboard</h1><div style="background:#F0E4DC; padding:8px 20px; border-radius:40px;">Welcome Admin</div></div>
+                  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:25px; margin-bottom:40px;">
+                      <div class="glass-table" style="text-align:center"><i class="fa-solid fa-book-open" style="font-size:40px;color:#C16A4B"></i><h2 style="font-size:42px">${totalPoems}</h2><p>Total Poems</p><small style="color:#888">${pendingPoems} pending</small></div>
+                      <div class="glass-table" style="text-align:center"><i class="fa-solid fa-user-pen" style="font-size:40px;color:#C16A4B"></i><h2 style="font-size:42px">${totalUsers}</h2><p>Poets</p></div>
+                      <div class="glass-table" style="text-align:center"><i class="fa-solid fa-users" style="font-size:40px;color:#C16A4B"></i><h2 style="font-size:42px">${totalUsers}</h2><p>Users</p></div>
+                  </div>
+                  <div class="glass-table"><h3>📜 Recent Poems</h3>${recentPoems.map((p) => `<div style="padding:12px 0; border-bottom:1px solid #eee;"><strong>${escapeHtml(p.title)}</strong> — ${escapeHtml(p.author.firstName + " " + p.author.lastName)} <span class="status-badge ${p.status === "Approved" ? "status-approved" : "status-pending"}">${p.status}</span></div>`).join("")}</div>`;
+        document.getElementById("mainPanel").innerHTML = html;
+      }
+
+      // ======================== ENHANCED POEMS SECTION (view improved, all backend functions preserved) ========================
+      let poemSearchTerm = "";
+      let poemStatusFilter = "all";
+
+      // Upgraded view poem function with beautiful poem card modal instead of basic alert
+      function enhancedViewPoem(poemId) {
+        const poem = poems.find((p) => p._id === poemId);
+        if (!poem) return;
+        const fullName = escapeHtml(
+          poem.author.firstName + " " + poem.author.lastName,
+        );
+        const poemTitle = escapeHtml(poem.title);
+        const poemBody = escapeHtml(poem.body);
+        const statusClass =
+          poem.status === "Approved"
+            ? "status-approved"
+            : poem.status === "Pending"
+              ? "status-pending"
+              : "status-rejected";
+              
+        const modalContent = `
+                <div class="poem-preview-card">
+                  <div class="poem-title-preview">${poemTitle}</div>
+                  <div class="poem-meta-preview">
+                    <span><i class="fa-regular fa-user"></i> ${fullName}</span>
+                    <span class="status-badge ${statusClass}"><i class="fa-regular fa-bookmark"></i> ${poem.status}</span>
+                    ${poem.createdAt ? `<span><i class="fa-regular fa-calendar"></i> ${new Date(poem.createdAt).toLocaleDateString()}</span>` : ""}
+                  </div>
+                  <div class="poem-body-preview">
+                    ${poemBody
+                      .split("\n")
+                      .map(
+                        (line) =>
+                          `<p style="margin-bottom:12px;">${line || "&nbsp;"}</p>`,
+                      )
+                      .join("")}
+                  </div>
+                  <div style="margin-top:24px; display:flex; justify-content:flex-end;">
+                    <button class="icon-btn edit" id="closePreviewBtn" style="background:#c16a4b20; color:#9e4f36;"><i class="fa-regular fa-circle-check"></i> Close</button>
+                  </div>
+                </div>
+              `;
+        // use mini modal style but container same as global modal but repurpose
+        const modalOverlay = document.getElementById("globalModal");
+        const modalTitle = document.getElementById("modalTitle");
+        const modalFields = document.getElementById("modalFields");
+        const saveBtn = document.getElementById("modalSaveBtn");
+        modalTitle.innerText = "✨ Poem Preview";
+        modalFields.innerHTML = modalContent;
+        saveBtn.style.display = "none";
+        modalOverlay.style.display = "flex";
+        const closePreview = () => {
+          modalOverlay.style.display = "none";
+          saveBtn.style.display = "flex";
+        };
+        const closeBtn = document.getElementById("closePreviewBtn");
+        if (closeBtn) closeBtn.addEventListener("click", closePreview);
+        modalOverlay.onclick = (e) => {
+          if (e.target === modalOverlay) closePreview();
+        };
+      }
+
+      function renderPoems() {
+        let filteredPoems = poems.filter((p) => {
+          const matchesSearch =
+            p.title.toLowerCase().includes(poemSearchTerm.toLowerCase()) ||
+            p.author.firstName
+              .toLowerCase()
+              .includes(poemSearchTerm.toLowerCase()) ||
+            p.author.lastName
+              .toLowerCase()
+              .includes(poemSearchTerm.toLowerCase());
+          const matchesStatus =
+            poemStatusFilter === "all" || p.status === poemStatusFilter;
+          return matchesSearch && matchesStatus;
+        });
+
+        const html = `
+                  <div class="page-header"><h1><i class="fa-regular fa-message"></i> Poems Management</h1>
+                  <button class="btn-primary" id="addPoemDummyBtn" style="background:#9e4f36; cursor:not-allowed;" disabled><i class="fa-solid fa-plus"></i> Add Poem (via poets)</button>
+                  </div>
+                  <div class="search-box">
+                      <input type="text" id="poemSearch" placeholder="🔍 Search by title, author..." value="${escapeHtml(poemSearchTerm)}">
+                      <select id="poemStatusFilter">
+                          <option value="all" ${poemStatusFilter === "all" ? "selected" : ""}>📌 All Status</option>
+                          <option value="Approved" ${poemStatusFilter === "Approved" ? "selected" : ""}>✅ Approved</option>
+                          <option value="Pending" ${poemStatusFilter === "Pending" ? "selected" : ""}>⏳ Pending</option>
+                          <option value="Rejected" ${poemStatusFilter === "Rejected" ? "selected" : ""}>❌ Rejected</option>
+                      </select>
+                  </div>
+                  <div class="glass-table" style="padding:0; overflow-x:auto;">
+                  <table style="width:100%;">
+                      <thead>
+                        <tr><th>📖 Poem & Excerpt</th><th>✍️ Author</th><th>🏷️ Status</th><th>⚡ Actions</th></tr>
+                      </thead>
+                      <tbody>
+                      ${filteredPoems
+                        .map((poem) => {
+                          const statusBg =
+                            poem.status === "Approved"
+                              ? "#E8F0FE"
+                              : poem.status === "Pending"
+                                ? "#FFF3E0"
+                                : "#FFE4E4";
+                          const previewExcerpt =
+                            poem.body.length > 70
+                              ? poem.body.substring(0, 70) + "…"
+                              : poem.body;
+                          return `<tr class="poem-row-enhanced" data-id="${poem._id}" style="transition:0.1s;">
+                          <td style="vertical-align:top;">
+                            <div style="font-weight:800; font-size:1.05rem; color:#9e4f36;">${escapeHtml(poem.title)}</div>
+                            <div style="font-size:0.8rem; color:#7f6b5c; margin-top:6px;"><i class="fa-regular fa-file-lines"></i> ${escapeHtml(previewExcerpt)}</div>
+                           </td>
+                          <td style="white-space:nowrap;"><i class="fa-regular fa-user-circle"></i> ${escapeHtml(poem.author.firstName + " " + poem.author.lastName)}</td>
+                          <td>
+                            <select class="status-select-enhanced" data-status-change="${poem._id}" style="border:none; background:${statusBg}; padding:6px 14px; border-radius:100px; font-weight:500;">
+                              <option value="Approved" ${poem.status === "Approved" ? "selected" : ""}>✅ Approved</option>
+                              <option value="Pending" ${poem.status === "Pending" ? "selected" : ""}>⏳ Pending</option>
+                              <option value="Rejected" ${poem.status === "Rejected" ? "selected" : ""}>❌ Rejected</option>
+                            </select>
+                           </td>
+                          <td class="action-group">
+                            <button class="icon-btn edit" data-action="editPoem" data-id="${poem._id}"><i class="fa-solid fa-pen"></i> Edit</button>
+                            <button class="icon-btn delete" data-action="deletePoem" data-id="${poem._id}"><i class="fa-solid fa-trash"></i> Delete</button>
+                            <button class="icon-btn view enhanced-view-btn" data-action="viewPoemEnhanced" data-id="${poem._id}"><i class="fa-solid fa-eye"></i> Read</button>
+                           </td>
+                         </tr>`;
+                        })
+                        .join("")}
+                      ${filteredPoems.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:48px;">🌸 No poems found. Adjust filters or wait for submissions.</td>' : ""}
+                      </tbody>
+                   </table>
+                  </div>
+              `;
+        document.getElementById("mainPanel").innerHTML = html;
+
+        document
+          .getElementById("poemSearch")
+          ?.addEventListener("input", (e) => {
+            poemSearchTerm = e.target.value;
+            renderPoems();
+          });
+        document
+          .getElementById("poemStatusFilter")
+          ?.addEventListener("change", (e) => {
+            poemStatusFilter = e.target.value;
+            renderPoems();
+          });
+
+        document.querySelectorAll("[data-status-change]").forEach((select) => {
+          select.addEventListener("change", async (e) => {
+            const poemId = select.getAttribute("data-status-change");
+            const poem = poems.find((p) => p._id === poemId);
+            if (poem) {
+              const newStatus = e.target.value;
+              poem.status = newStatus;
+              showToast(`Status updated to ${newStatus}`);
+              renderPoems();
+            }
+          });
+        });
+
+        document
+          .querySelectorAll("[data-action='deletePoem']")
+          .forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              if (!confirm("⚠️ Permanently delete this poem?")) return;
+              const id = btn.getAttribute("data-id");
+              const response = await fetch(`${API_URL}/poems/${id}`, {
+                method: "DELETE",
+              });
+              const data = await response.json();
+              if (data.success) {
+                await loadPoems();
+                renderPoems();
+                showToast("Poem deleted");
+              } else {
+                showToast("Delete failed");
+              }
+            });
+          });
+
+        document.querySelectorAll("[data-action='editPoem']").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            const poem = poems.find((p) => p._id === id);
+            if (!poem) return;
+            openModal(
+              "Edit Poem",
+              `
+      <input id="editPoemTitle" value="${escapeHtml(poem.title)}" placeholder="Title">
+      <textarea id="editPoemBody" rows="5" placeholder="Poem content">${escapeHtml(poem.body)}</textarea>
+      <select id="editPoemStatus">
+        <option value="Approved" ${poem.status === "Approved" ? "selected" : ""}>Approved</option>
+        <option value="Pending" ${poem.status === "Pending" ? "selected" : ""}>Pending</option>
+        <option value="Rejected" ${poem.status === "Rejected" ? "selected" : ""}>Rejected</option>
+      </select>`,
+              async () => {
+                const newTitle = document.getElementById("editPoemTitle").value.trim();
+                const newBody = document.getElementById("editPoemBody").value.trim();
+                if (!newTitle || !newBody) return alert("Title & body required");
+                const response = await fetch(`${API_URL}/poems/${id}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ title: newTitle, body: newBody, category: poem.category, tags: poem.tags }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                  await loadPoems();
+                  renderPoems();
+                  showToast("Poem updated");
+                }
+              },
+            );
+          });
+        });
+
+        document.querySelectorAll("[data-action='viewPoemEnhanced']").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            enhancedViewPoem(id);
+          });
+        });
+      }
+
+      // ======================== USERS (unchanged + PROFILE PIC CLICK ENLARGE) ========================
+      let userSearchTerm = "";
+
+      function openEditUserModal(id) {
+        const user = users.find((u) => u._id === id);
+        if (!user) return;
+        openModal(
+          "Edit User",
+          `
+          <input id="editFirstName" placeholder="First Name" value="${escapeHtml(user.firstName)}">
+          <input id="editLastName" placeholder="Last Name" value="${escapeHtml(user.lastName)}">
+          <input id="editEmail" placeholder="Email" value="${escapeHtml(user.email)}">
+          `,
+          async () => {
+            const response = await fetch(`${API_URL}/users/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                firstName: document.getElementById("editFirstName").value,
+                lastName: document.getElementById("editLastName").value,
+                email: document.getElementById("editEmail").value,
+              }),
+            });
+            const data = await response.json();
+            if (data.success) {
+              await loadUsers();
+              renderUsers();
+              showToast("User updated");
+            }
+          },
+        );
+      }
+      
+      // NEW: enlarge profile picture function
+      function enlargeProfilePicture(imgSrc, userName) {
+        if (!imgSrc) return;
+        const overlay = document.createElement("div");
+        overlay.className = "profile-enlarge-overlay";
+        overlay.innerHTML = `
+          <div class="profile-enlarge-container">
+            <img class="profile-enlarge-img" src="${escapeHtml(imgSrc)}" alt="${escapeHtml(userName)}'s profile" />
+          </div>
+          <div class="close-enlarge-hint"><i class="fa-regular fa-circle-xmark"></i> Click anywhere to close</div>
+        `;
+        document.body.appendChild(overlay);
+        const closeEnlarge = () => overlay.remove();
+        overlay.addEventListener("click", closeEnlarge);
+      }
+
+      function renderUsers() {
+        let filteredUsers = users.filter(
+          (u) =>
+            (u.firstName + " " + u.lastName)
+              .toLowerCase()
+              .includes(userSearchTerm.toLowerCase()) ||
+            u.email.toLowerCase().includes(userSearchTerm.toLowerCase()),
+        );
+        const html = `<div class="page-header"><h1>Users Management</h1></div>
+              <div class="search-box"><input type="text" id="userSearch" placeholder="🔍 Search users..." value="${escapeHtml(userSearchTerm)}"></div>
+              <div class="glass-table"><table><thead><tr><th>User</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+                  ${filteredUsers
+                    .map(
+                      (user) => {
+                        const profilePicUrl = user.profilePic || "https://res.cloudinary.com/djdvpnrnf/image/upload/v1780752284/profilePic_roaig0.png";
+                        return `
+                       <tr>
+                         <td>
+                           <div style="display:flex;align-items:center;gap:15px;">
+                             <img src="${escapeHtml(profilePicUrl)}" alt="profile" class="avatar-clickable" data-profile-pic="${escapeHtml(profilePicUrl)}" data-username="${escapeHtml(user.firstName + " " + user.lastName)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover;border:2px solid #C16A4B;flex-shrink:0; cursor:pointer;">
+                             <div>
+                               <div style="font-weight:700;">${escapeHtml(user.firstName + " " + user.lastName)}</div>
+                               <div style="font-size:13px;color:#888;margin-top:4px;">${escapeHtml(user.email)}</div>
+                             </div>
+                           </div>
+                         </td>
+                         <td><span class="status-badge ${user.status === "Active" ? "status-active" : "status-blocked"}">${user.status}</span></td>
+                          <td class="action-group">
+                              <button class="icon-btn edit" data-action="editUser" data-id="${user._id}"><i class="fa-solid fa-pen"></i> Edit</button>
+                              <button class="icon-btn ${user.status === "Active" ? "block" : "unblock"}" data-action="toggleBlock" data-id="${user._id}"><i class="fa-solid ${user.status === "Active" ? "fa-ban" : "fa-check-circle"}"></i> ${user.status === "Active" ? "Block" : "Unblock"}</button>
+                              <button class="icon-btn delete" data-action="deleteUser" data-id="${user._id}"><i class="fa-solid fa-trash"></i> Delete</button>
+                          </td>
+                         </tr>`;
+                      }
+                    )
+                    .join("")}
+                  ${filteredUsers.length === 0 ? '<tr><td colspan="3" style="text-align:center">No users found</td>' : ""}
+              </tbody></table></div>`;
+        document.getElementById("mainPanel").innerHTML = html;
+        
+        document.getElementById("userSearch")?.addEventListener("input", (e) => {
+          userSearchTerm = e.target.value;
+          renderUsers();
+        });
+        
+        document.querySelectorAll("[data-action='editUser']").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            openEditUserModal(id);
+          });
+        });
+        
+        document.querySelectorAll("[data-action='deleteUser']").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (!confirm("Delete user permanently?")) return;
+            const id = btn.getAttribute("data-id");
+            const response = await fetch(`${API_URL}/users/${id}`, { method: "DELETE" });
+            const data = await response.json();
+            if (data.success) {
+              await loadUsers();
+              renderUsers();
+              showToast("User deleted");
+            }
+          });
+        });
+        
+        document.querySelectorAll("[data-action='toggleBlock']").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            const user = users.find((u) => u._id === id);
+            if (user) {
+              const newStatus = user.status === "Active" ? "Blocked" : "Active";
+              user.status = newStatus;
+              showToast(`User ${newStatus === "Active" ? "unblocked" : "blocked"}`);
+              renderUsers();
+            }
+          });
+        });
+        
+        // NEW: add click listener for profile pictures (enlarge)
+        document.querySelectorAll(".avatar-clickable").forEach((imgEl) => {
+          imgEl.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const picUrl = imgEl.getAttribute("data-profile-pic");
+            const userName = imgEl.getAttribute("data-username") || "User";
+            if (picUrl) enlargeProfilePicture(picUrl, userName);
+          });
+        });
+      }
+
+      // ======================== SETTINGS (untouched) ========================
+      function renderSettings() {
+        const html = `<div class="page-header"><h1>Website Settings</h1></div>
+              <div class="glass-table" style="max-width:700px;">
+                  <div style="margin-bottom:20px;"><label style="font-weight:600">Site Name</label><input id="siteName" value="${escapeHtml(settings.siteName)}" style="width:100%; padding:14px; border-radius:30px; border:1px solid #eee; margin-top:8px;"></div>
+                  <div style="margin-bottom:20px;"><label style="font-weight:600">Tagline</label><input id="tagline" value="${escapeHtml(settings.tagline)}" style="width:100%; padding:14px; border-radius:30px; border:1px solid #eee;"></div>
+                  <div style="margin-bottom:20px;"><label style="font-weight:600">Admin Email</label><input id="adminEmail" value="${escapeHtml(settings.email)}" style="width:100%; padding:14px; border-radius:30px; border:1px solid #eee;"></div>
+                  <hr><h3 style="margin:20px 0 15px">Social Links</h3>
+                  <div style="margin-bottom:20px;"><label>Instagram</label><input id="instagram" value="${escapeHtml(settings.instagram || "")}" style="width:100%; padding:14px; border-radius:30px; border:1px solid #eee;"></div>
+                  <div style="margin-bottom:20px;"><label>Facebook</label><input id="facebook" value="${escapeHtml(settings.facebook || "")}" style="width:100%; padding:14px; border-radius:30px; border:1px solid #eee;"></div>
+                  <div style="margin-bottom:20px;"><label>YouTube</label><input id="youtube" value="${escapeHtml(settings.youtube || "")}" style="width:100%; padding:14px; border-radius:30px; border:1px solid #eee;"></div>
+                  <button class="btn-primary" id="saveSettingsBtn" style="margin-top:15px;">Save Settings</button>
+                  <div id="settingMsg" style="margin-top:15px; color:green; display:none;">✓ Saved</div>
+              </div>`;
+        document.getElementById("mainPanel").innerHTML = html;
+        document.getElementById("saveSettingsBtn")?.addEventListener("click", () => {
+          settings.siteName = document.getElementById("siteName").value;
+          settings.tagline = document.getElementById("tagline").value;
+          settings.email = document.getElementById("adminEmail").value;
+          settings.instagram = document.getElementById("instagram").value;
+          settings.facebook = document.getElementById("facebook").value;
+          settings.youtube = document.getElementById("youtube").value;
+          const msg = document.getElementById("settingMsg");
+          msg.style.display = "block";
+          setTimeout(() => (msg.style.display = "none"), 2000);
+          showToast("Settings saved");
+        });
+      }
+
+      let currentPage = "dashboard";
+      function loadPage(page) {
+        currentPage = page;
+        if (page === "dashboard") renderDashboard();
+        else if (page === "poems") renderPoems();
+        else if (page === "users") renderUsers();
+        else if (page === "settings") renderSettings();
+        document.querySelectorAll(".menu a").forEach((link) => {
+          if (link.getAttribute("data-page") === page) link.classList.add("active");
+          else link.classList.remove("active");
+        });
+      }
+
+      (async () => {
+        await loadUsers();
+        await loadPoems();
+        loadPage("dashboard");
+      })();
+
+      document.querySelectorAll(".menu a").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          loadPage(link.getAttribute("data-page"));
+        });
+      });
+    </script>
+  </body>
+</html>
