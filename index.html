@@ -551,6 +551,7 @@
         <a data-page="dashboard"
           ><i class="fa-solid fa-chart-line"></i> Dashboard</a
         >
+        <a data-page="sher"><i class="fa-solid fa-feather-pointed"></i> आज का शेर</a>
         <a data-page="poems"><i class="fa-solid fa-book-open"></i> Poems</a>
         <a data-page="users"><i class="fa-solid fa-users"></i> Users</a>
         <a data-page="settings"><i class="fa-solid fa-gear"></i> Settings</a>
@@ -577,7 +578,8 @@
 
     <script>
       // ======================== DATA STORES (Exactly same backend connections, untouched) ========================
-      const API_URL = "https://mehfilbackend.onrender.com/api/admin";
+      // const API_URL = "https://mehfilbackend.onrender.com/api/admin";
+      const API_URL = "http://192.168.0.79:5000/api/admin";
 
       let users = [];
       let poems = [];
@@ -1142,6 +1144,133 @@
       }
 
       // ======================== SETTINGS (untouched) ========================
+      async function renderSherPage() {
+        const main = document.querySelector(".main-panel");
+        main.innerHTML = `
+          <div class="page-header">
+            <div>
+              <h1>आज का शेर</h1>
+              <p style="color:#7b6f67; margin-top:8px;">Homepage के “आज का शेर” card को यहाँ से manage करें।</p>
+            </div>
+            <button class="btn-primary" id="saveSherBtn"><i class="fa-solid fa-floppy-disk"></i> Save Sher</button>
+          </div>
+          <div style="display:grid; grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr); gap:24px; align-items:start;">
+            <div style="background:#fff; border:1px solid #eadfd5; border-radius:24px; padding:26px; box-shadow:0 12px 30px rgba(70,45,30,.06);">
+              <div style="display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap;">
+                <button type="button" id="sherPoemMode" class="btn-primary"><i class="fa-solid fa-book-open"></i> Existing Poem</button>
+                <button type="button" id="sherManualMode" style="background:#f4ece5;color:#5c4032;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-pen"></i> Write Manually</button>
+              </div>
+              <div id="sherPoemFields">
+                <label style="display:block;font-weight:700;margin-bottom:8px;">Select Poem</label>
+                <select id="sherPoemSelect" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;background:#fff;font-size:15px;"><option value="">Loading poems...</option></select>
+                <p style="margin-top:9px;color:#8a7b70;font-size:13px;">Selected poem की पहली दो non-empty lines homepage पर दिखाई जाएँगी और writer name poem author से आएगा।</p>
+              </div>
+              <div id="sherManualFields" style="display:none;">
+                <div style="margin-bottom:18px;"><label style="display:block;font-weight:700;margin-bottom:8px;">पहली पंक्ति</label><textarea id="sherLine1" rows="3" placeholder="पहली पंक्ति लिखें..." style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;resize:vertical;font-size:16px;"></textarea></div>
+                <div style="margin-bottom:18px;"><label style="display:block;font-weight:700;margin-bottom:8px;">दूसरी पंक्ति</label><textarea id="sherLine2" rows="3" placeholder="दूसरी पंक्ति लिखें..." style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;resize:vertical;font-size:16px;"></textarea></div>
+                <div style="margin-bottom:18px;"><label style="display:block;font-weight:700;margin-bottom:8px;">शायर / Writer Name</label><input id="sherWriter" placeholder="जैसे — मिर्ज़ा ग़ालिब" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;font-size:15px;" /></div>
+              </div>
+              <div style="margin-top:18px;"><label style="display:block;font-weight:700;margin-bottom:8px;">Tag <span style="font-weight:400;color:#999;">(optional)</span></label><input id="sherTag" placeholder="जैसे — इश्क़, दर्द, ज़िंदगी" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;font-size:15px;" /></div>
+              <button type="button" id="resetSherBtn" style="margin-top:18px;background:transparent;color:#a34f38;border:1px solid #d8b9aa;padding:10px 16px;border-radius:30px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> Reset to automatic</button>
+            </div>
+            <div style="background:linear-gradient(145deg,#fff8ef,#f7eadb);border:1px solid #ead7c6;border-radius:24px;padding:26px;position:sticky;top:24px;">
+              <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#a05b42;font-weight:800;margin-bottom:8px;">Homepage Preview</div>
+              <h2 style="font-family:Georgia,serif;color:#5b3b2e;margin-bottom:22px;">आज का शेर</h2>
+              <div style="background:rgba(255,255,255,.72);border-radius:20px;padding:24px;text-align:center;box-shadow:0 10px 25px rgba(90,60,40,.06);">
+                <div style="font-size:42px;line-height:1;color:#c16a4b;opacity:.5;margin-bottom:10px;">“</div>
+                <div id="sherPreviewLine1" style="font-family:Georgia,serif;font-size:20px;line-height:1.7;color:#3f3029;">—</div>
+                <div id="sherPreviewLine2" style="font-family:Georgia,serif;font-size:20px;line-height:1.7;color:#3f3029;">—</div>
+                <div style="height:1px;background:#d9c4b2;margin:18px auto;width:70%;"></div>
+                <div id="sherPreviewWriter" style="font-weight:700;color:#9e4f36;">—</div>
+                <div id="sherPreviewTag" style="margin-top:8px;color:#8a6a5b;font-size:13px;"></div>
+              </div>
+            </div>
+          </div>`;
+
+        let sherMode = "poem";
+        let poemsForSher = [];
+        const poemFields = document.getElementById("sherPoemFields");
+        const manualFields = document.getElementById("sherManualFields");
+        const poemSelect = document.getElementById("sherPoemSelect");
+        const line1 = document.getElementById("sherLine1");
+        const line2 = document.getElementById("sherLine2");
+        const writer = document.getElementById("sherWriter");
+        const tag = document.getElementById("sherTag");
+
+        const getPoemLines = (poem) => (poem?.body || "").split("\n").map(x => x.trim()).filter(Boolean).slice(0, 2);
+        const getAuthorName = (poem) => `${poem?.author?.firstName || ""} ${poem?.author?.lastName || ""}`.trim() || "अज्ञात शायर";
+        const updatePreview = () => {
+          let a = "", b = "", w = "";
+          if (sherMode === "poem") {
+            const poem = poemsForSher.find(p => p._id === poemSelect.value);
+            const lines = getPoemLines(poem); a = lines[0] || ""; b = lines[1] || ""; w = getAuthorName(poem);
+          } else { a = line1.value.trim(); b = line2.value.trim(); w = writer.value.trim(); }
+          document.getElementById("sherPreviewLine1").textContent = a || "—";
+          document.getElementById("sherPreviewLine2").textContent = b || "—";
+          document.getElementById("sherPreviewWriter").textContent = w ? `— ${w}` : "—";
+          document.getElementById("sherPreviewTag").textContent = tag.value.trim() ? `# ${tag.value.trim()}` : "";
+        };
+        const setMode = (mode) => {
+          sherMode = mode;
+          const active = "background:#c16a4b;color:white;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;";
+          const inactive = "background:#f4ece5;color:#5c4032;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;";
+          document.getElementById("sherPoemMode").style.cssText = mode === "poem" ? active : inactive;
+          document.getElementById("sherManualMode").style.cssText = mode === "manual" ? active : inactive;
+          poemFields.style.display = mode === "poem" ? "block" : "none";
+          manualFields.style.display = mode === "manual" ? "block" : "none";
+          updatePreview();
+        };
+        const loadSherData = async () => {
+          try {
+            const [poemRes, configRes] = await Promise.all([fetch(`${API_URL}/poems`), fetch(`${API_URL}/sher-of-the-day`)]);
+            const poemData = await poemRes.json(); const configData = await configRes.json();
+            poemsForSher = poemData.success && Array.isArray(poemData.poems) ? poemData.poems : [];
+            poemSelect.innerHTML = '<option value="">Select a poem...</option>' + poemsForSher.map(p => {
+              const author = getAuthorName(p); const lines = getPoemLines(p); const disabled = lines.length < 2 ? " disabled" : "";
+              return `<option value="${escapeHtml(p._id)}"${disabled}>${escapeHtml(p.title || "Untitled")} — ${escapeHtml(author)}${lines.length < 2 ? " (2 lines required)" : ""}</option>`;
+            }).join("");
+            const config = configData.success ? configData.config : null;
+            if (config?.sourceType === "manual") {
+              setMode("manual"); line1.value = config.line1 || ""; line2.value = config.line2 || ""; writer.value = config.writerName || "";
+            } else {
+              setMode("poem"); if (config?.poemId) poemSelect.value = config.poemId;
+            }
+            tag.value = config?.tag || ""; updatePreview();
+          } catch (error) { console.error(error); showToast("आज का शेर data load नहीं हो पाया"); }
+        };
+        document.getElementById("sherPoemMode").onclick = () => setMode("poem");
+        document.getElementById("sherManualMode").onclick = () => setMode("manual");
+        poemSelect.onchange = updatePreview;
+        [line1, line2, writer, tag].forEach(el => el.addEventListener("input", updatePreview));
+
+        document.getElementById("saveSherBtn").onclick = async () => {
+          const payload = { sourceType: sherMode, tag: tag.value.trim() };
+          if (sherMode === "poem") {
+            if (!poemSelect.value) return showToast("Please select a poem");
+            const poem = poemsForSher.find(p => p._id === poemSelect.value);
+            if (!poem || getPoemLines(poem).length < 2) return showToast("Selected poem में कम से कम 2 lines होनी चाहिए");
+            payload.poemId = poemSelect.value;
+          } else {
+            payload.line1 = line1.value.trim(); payload.line2 = line2.value.trim(); payload.writerName = writer.value.trim();
+            if (!payload.line1 || !payload.line2 || !payload.writerName) return showToast("दोनों lines और writer name भरें");
+          }
+          try {
+            const response = await fetch(`${API_URL}/sher-of-the-day`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            const data = await response.json(); if (!data.success) throw new Error(data.message || "Save failed");
+            showToast("आज का शेर successfully save हो गया"); await loadSherData();
+          } catch (error) { console.error(error); showToast(error.message || "Save failed"); }
+        };
+        document.getElementById("resetSherBtn").onclick = async () => {
+          if (!confirm("आज का शेर reset करके homepage को automatic selection पर लाना है?")) return;
+          try {
+            const response = await fetch(`${API_URL}/sher-of-the-day`, { method: "DELETE" }); const data = await response.json();
+            if (!data.success) throw new Error(data.message || "Reset failed");
+            showToast("आज का शेर automatic mode पर reset हो गया"); setMode("poem"); poemSelect.value = ""; line1.value = ""; line2.value = ""; writer.value = ""; tag.value = ""; updatePreview();
+          } catch (error) { console.error(error); showToast(error.message || "Reset failed"); }
+        };
+        await loadSherData();
+      }
+
       function renderSettings() {
         const html = `<div class="page-header"><h1>Website Settings</h1></div>
               <div class="glass-table" style="max-width:700px;">
@@ -1177,6 +1306,7 @@
         currentPage = page;
         if (page === "dashboard") renderDashboard();
         else if (page === "poems") renderPoems();
+        else if (page === "sher") renderSherPage();
         else if (page === "users") renderUsers();
         else if (page === "settings") renderSettings();
         document.querySelectorAll(".menu a").forEach((link) => {
