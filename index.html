@@ -552,6 +552,7 @@
           ><i class="fa-solid fa-chart-line"></i> Dashboard</a
         >
         <a data-page="sher"><i class="fa-solid fa-feather-pointed"></i> आज का शेर</a>
+        <a data-page="lafz"><i class="fa-solid fa-language"></i> आज का लफ़्ज़</a>
         <a data-page="poems"><i class="fa-solid fa-book-open"></i> Poems</a>
         <a data-page="users"><i class="fa-solid fa-users"></i> Users</a>
         <a data-page="settings"><i class="fa-solid fa-gear"></i> Settings</a>
@@ -1144,131 +1145,413 @@
       }
 
       // ======================== SETTINGS (untouched) ========================
+      function getLocalDateKey(offset = 0) {
+        const date = new Date();
+        date.setDate(date.getDate() + offset);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function localDateKey() {
+        return getLocalDateKey(0);
+      }
+
+      function addDaysKey(dateKey, days) {
+        const [year, month, day] = dateKey.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
+        date.setDate(date.getDate() + days);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function formatSherDate(dateKey) {
+        const [year, month, day] = dateKey.split("-").map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString("hi-IN", {
+          weekday: "long", day: "numeric", month: "long", year: "numeric"
+        });
+      }
+
+      function formatLafzDate(dateKey) {
+        const [year, month, day] = dateKey.split("-").map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString("hi-IN", {
+          weekday: "long", day: "numeric", month: "long", year: "numeric"
+        });
+      }
+
       async function renderSherPage() {
         const main = document.querySelector(".main-panel");
+        const todayKey = localDateKey();
+        const tomorrowKey = addDaysKey(todayKey, 1);
+
         main.innerHTML = `
           <div class="page-header">
             <div>
               <h1>आज का शेर</h1>
-              <p style="color:#7b6f67; margin-top:8px;">Homepage के “आज का शेर” card को यहाँ से manage करें।</p>
+              <p style="color:#7b6f67;margin-top:8px;">आज और कल का शेर पहले से set करें। रात 12:00 बजे अगला शेर अपने आप live हो जाएगा।</p>
             </div>
-            <button class="btn-primary" id="saveSherBtn"><i class="fa-solid fa-floppy-disk"></i> Save Sher</button>
           </div>
-          <div style="display:grid; grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr); gap:24px; align-items:start;">
-            <div style="background:#fff; border:1px solid #eadfd5; border-radius:24px; padding:26px; box-shadow:0 12px 30px rgba(70,45,30,.06);">
-              <div style="display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap;">
-                <button type="button" id="sherPoemMode" class="btn-primary"><i class="fa-solid fa-book-open"></i> Existing Poem</button>
-                <button type="button" id="sherManualMode" style="background:#f4ece5;color:#5c4032;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-pen"></i> Write Manually</button>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;align-items:start;">
+            <div class="glass-table" style="padding:26px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;">
+                <div><h2 style="font-family:Georgia,serif;color:#5b3b2e;margin:0;">आज</h2><div id="sherTodayDate" style="color:#8a6a5b;margin-top:5px;font-size:13px;">${formatSherDate(todayKey)}</div></div>
+                <span style="background:#f3e3da;color:#a34f38;padding:7px 12px;border-radius:30px;font-size:12px;font-weight:700;">LIVE TODAY</span>
               </div>
-              <div id="sherPoemFields">
-                <label style="display:block;font-weight:700;margin-bottom:8px;">Select Poem</label>
-                <select id="sherPoemSelect" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;background:#fff;font-size:15px;"><option value="">Loading poems...</option></select>
-                <p style="margin-top:9px;color:#8a7b70;font-size:13px;">Selected poem की पहली दो non-empty lines homepage पर दिखाई जाएँगी और writer name poem author से आएगा।</p>
-              </div>
-              <div id="sherManualFields" style="display:none;">
-                <div style="margin-bottom:18px;"><label style="display:block;font-weight:700;margin-bottom:8px;">पहली पंक्ति</label><textarea id="sherLine1" rows="3" placeholder="पहली पंक्ति लिखें..." style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;resize:vertical;font-size:16px;"></textarea></div>
-                <div style="margin-bottom:18px;"><label style="display:block;font-weight:700;margin-bottom:8px;">दूसरी पंक्ति</label><textarea id="sherLine2" rows="3" placeholder="दूसरी पंक्ति लिखें..." style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;resize:vertical;font-size:16px;"></textarea></div>
-                <div style="margin-bottom:18px;"><label style="display:block;font-weight:700;margin-bottom:8px;">शायर / Writer Name</label><input id="sherWriter" placeholder="जैसे — मिर्ज़ा ग़ालिब" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;font-size:15px;" /></div>
-              </div>
-              <div style="margin-top:18px;"><label style="display:block;font-weight:700;margin-bottom:8px;">Tag <span style="font-weight:400;color:#999;">(optional)</span></label><input id="sherTag" placeholder="जैसे — इश्क़, दर्द, ज़िंदगी" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;font-size:15px;" /></div>
-              <button type="button" id="resetSherBtn" style="margin-top:18px;background:transparent;color:#a34f38;border:1px solid #d8b9aa;padding:10px 16px;border-radius:30px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> Reset to automatic</button>
+              <div id="sherTodayForm"></div>
             </div>
-            <div style="background:linear-gradient(145deg,#fff8ef,#f7eadb);border:1px solid #ead7c6;border-radius:24px;padding:26px;position:sticky;top:24px;">
-              <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#a05b42;font-weight:800;margin-bottom:8px;">Homepage Preview</div>
-              <h2 style="font-family:Georgia,serif;color:#5b3b2e;margin-bottom:22px;">आज का शेर</h2>
-              <div style="background:rgba(255,255,255,.72);border-radius:20px;padding:24px;text-align:center;box-shadow:0 10px 25px rgba(90,60,40,.06);">
-                <div style="font-size:42px;line-height:1;color:#c16a4b;opacity:.5;margin-bottom:10px;">“</div>
-                <div id="sherPreviewLine1" style="font-family:Georgia,serif;font-size:20px;line-height:1.7;color:#3f3029;">—</div>
-                <div id="sherPreviewLine2" style="font-family:Georgia,serif;font-size:20px;line-height:1.7;color:#3f3029;">—</div>
-                <div style="height:1px;background:#d9c4b2;margin:18px auto;width:70%;"></div>
-                <div id="sherPreviewWriter" style="font-weight:700;color:#9e4f36;">—</div>
-                <div id="sherPreviewTag" style="margin-top:8px;color:#8a6a5b;font-size:13px;"></div>
+            <div class="glass-table" style="padding:26px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;">
+                <div><h2 style="font-family:Georgia,serif;color:#5b3b2e;margin:0;">कल</h2><div id="sherTomorrowDate" style="color:#8a6a5b;margin-top:5px;font-size:13px;">${formatSherDate(tomorrowKey)}</div></div>
+                <span style="background:#eee7e1;color:#6f5b4e;padding:7px 12px;border-radius:30px;font-size:12px;font-weight:700;">NEXT DAY</span>
               </div>
+              <div id="sherTomorrowForm"></div>
             </div>
+          </div>
+          <div style="margin-top:24px;padding:18px 20px;border:1px solid #eaded4;border-radius:16px;background:#fffaf6;color:#6f5b4e;font-size:14px;line-height:1.7;">
+            <strong style="color:#5b3b2e;">कैसे काम करेगा:</strong> आज वाला शेर आज दिखेगा। कल वाला पहले से save रहेगा और local रात 12:00 बजे homepage पर अपने आप आज का शेर बन जाएगा। अगर किसी दिन custom शेर set नहीं है, तो existing automatic Sher of the Day fallback चलता रहेगा।
           </div>`;
 
-        let sherMode = "poem";
         let poemsForSher = [];
-        const poemFields = document.getElementById("sherPoemFields");
-        const manualFields = document.getElementById("sherManualFields");
-        const poemSelect = document.getElementById("sherPoemSelect");
-        const line1 = document.getElementById("sherLine1");
-        const line2 = document.getElementById("sherLine2");
-        const writer = document.getElementById("sherWriter");
-        const tag = document.getElementById("sherTag");
+        try {
+          const poemRes = await fetch(`${API_URL}/poems`);
+          const poemData = await poemRes.json();
+          poemsForSher = poemData.success && Array.isArray(poemData.poems) ? poemData.poems : [];
+        } catch (error) {
+          console.error(error);
+        }
 
         const getPoemLines = (poem) => (poem?.body || "").split("\n").map(x => x.trim()).filter(Boolean).slice(0, 2);
         const getAuthorName = (poem) => `${poem?.author?.firstName || ""} ${poem?.author?.lastName || ""}`.trim() || "अज्ञात शायर";
-        const updatePreview = () => {
-          let a = "", b = "", w = "";
-          if (sherMode === "poem") {
-            const poem = poemsForSher.find(p => p._id === poemSelect.value);
-            const lines = getPoemLines(poem); a = lines[0] || ""; b = lines[1] || ""; w = getAuthorName(poem);
-          } else { a = line1.value.trim(); b = line2.value.trim(); w = writer.value.trim(); }
-          document.getElementById("sherPreviewLine1").textContent = a || "—";
-          document.getElementById("sherPreviewLine2").textContent = b || "—";
-          document.getElementById("sherPreviewWriter").textContent = w ? `— ${w}` : "—";
-          document.getElementById("sherPreviewTag").textContent = tag.value.trim() ? `# ${tag.value.trim()}` : "";
-        };
-        const setMode = (mode) => {
-          sherMode = mode;
-          const active = "background:#c16a4b;color:white;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;";
-          const inactive = "background:#f4ece5;color:#5c4032;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;";
-          document.getElementById("sherPoemMode").style.cssText = mode === "poem" ? active : inactive;
-          document.getElementById("sherManualMode").style.cssText = mode === "manual" ? active : inactive;
-          poemFields.style.display = mode === "poem" ? "block" : "none";
-          manualFields.style.display = mode === "manual" ? "block" : "none";
-          updatePreview();
-        };
-        const loadSherData = async () => {
-          try {
-            const [poemRes, configRes] = await Promise.all([fetch(`${API_URL}/poems`), fetch(`${API_URL}/sher-of-the-day`)]);
-            const poemData = await poemRes.json(); const configData = await configRes.json();
-            poemsForSher = poemData.success && Array.isArray(poemData.poems) ? poemData.poems : [];
-            poemSelect.innerHTML = '<option value="">Select a poem...</option>' + poemsForSher.map(p => {
-              const author = getAuthorName(p); const lines = getPoemLines(p); const disabled = lines.length < 2 ? " disabled" : "";
-              return `<option value="${escapeHtml(p._id)}"${disabled}>${escapeHtml(p.title || "Untitled")} — ${escapeHtml(author)}${lines.length < 2 ? " (2 lines required)" : ""}</option>`;
-            }).join("");
-            const config = configData.success ? configData.config : null;
-            if (config?.sourceType === "manual") {
-              setMode("manual"); line1.value = config.line1 || ""; line2.value = config.line2 || ""; writer.value = config.writerName || "";
-            } else {
-              setMode("poem"); if (config?.poemId) poemSelect.value = config.poemId;
-            }
-            tag.value = config?.tag || ""; updatePreview();
-          } catch (error) { console.error(error); showToast("आज का शेर data load नहीं हो पाया"); }
-        };
-        document.getElementById("sherPoemMode").onclick = () => setMode("poem");
-        document.getElementById("sherManualMode").onclick = () => setMode("manual");
-        poemSelect.onchange = updatePreview;
-        [line1, line2, writer, tag].forEach(el => el.addEventListener("input", updatePreview));
 
-        document.getElementById("saveSherBtn").onclick = async () => {
-          const payload = { sourceType: sherMode, tag: tag.value.trim() };
-          if (sherMode === "poem") {
-            if (!poemSelect.value) return showToast("Please select a poem");
-            const poem = poemsForSher.find(p => p._id === poemSelect.value);
-            if (!poem || getPoemLines(poem).length < 2) return showToast("Selected poem में कम से कम 2 lines होनी चाहिए");
-            payload.poemId = poemSelect.value;
-          } else {
-            payload.line1 = line1.value.trim(); payload.line2 = line2.value.trim(); payload.writerName = writer.value.trim();
-            if (!payload.line1 || !payload.line2 || !payload.writerName) return showToast("दोनों lines और writer name भरें");
-          }
-          try {
-            const response = await fetch(`${API_URL}/sher-of-the-day`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            const data = await response.json(); if (!data.success) throw new Error(data.message || "Save failed");
-            showToast("आज का शेर successfully save हो गया"); await loadSherData();
-          } catch (error) { console.error(error); showToast(error.message || "Save failed"); }
+        const field = (id, label, placeholder, type = "input") => {
+          const control = type === "textarea"
+            ? `<textarea id="${id}" rows="3" placeholder="${placeholder}" style="width:100%;padding:13px 15px;border:1px solid #e5d9cf;border-radius:14px;resize:vertical;font-size:15px;box-sizing:border-box;"></textarea>`
+            : `<input id="${id}" placeholder="${placeholder}" style="width:100%;padding:13px 15px;border:1px solid #e5d9cf;border-radius:14px;font-size:15px;box-sizing:border-box;" />`;
+          return `<div style="margin-bottom:16px;"><label style="display:block;font-weight:700;margin-bottom:7px;color:#5c4032;">${label}</label>${control}</div>`;
         };
-        document.getElementById("resetSherBtn").onclick = async () => {
-          if (!confirm("आज का शेर reset करके homepage को automatic selection पर लाना है?")) return;
-          try {
-            const response = await fetch(`${API_URL}/sher-of-the-day`, { method: "DELETE" }); const data = await response.json();
-            if (!data.success) throw new Error(data.message || "Reset failed");
-            showToast("आज का शेर automatic mode पर reset हो गया"); setMode("poem"); poemSelect.value = ""; line1.value = ""; line2.value = ""; writer.value = ""; tag.value = ""; updatePreview();
-          } catch (error) { console.error(error); showToast(error.message || "Reset failed"); }
+
+        const formHtml = (prefix) => `
+          <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+            <button type="button" id="${prefix}PoemMode" class="btn-primary"><i class="fa-solid fa-book-open"></i> Existing Poem</button>
+            <button type="button" id="${prefix}ManualMode" style="background:#f4ece5;color:#5c4032;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-pen"></i> Write Manually</button>
+          </div>
+          <div id="${prefix}PoemFields">
+            <label style="display:block;font-weight:700;margin-bottom:8px;">Select Poem</label>
+            <select id="${prefix}PoemSelect" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;background:#fff;font-size:15px;"><option value="">Select a poem...</option></select>
+            <p style="margin-top:9px;color:#8a7b70;font-size:13px;">Selected poem की पहली दो non-empty lines और उसका writer homepage पर दिखेगा।</p>
+          </div>
+          <div id="${prefix}ManualFields" style="display:none;">
+            ${field(`${prefix}Line1`, "पहली पंक्ति", "पहली पंक्ति लिखें...", "textarea")}
+            ${field(`${prefix}Line2`, "दूसरी पंक्ति", "दूसरी पंक्ति लिखें...", "textarea")}
+            ${field(`${prefix}Writer`, "शायर / Writer Name", "जैसे — मिर्ज़ा ग़ालिब")}
+          </div>
+          ${field(`${prefix}Tag`, "Tag (optional)", "जैसे — इश्क़, दर्द, ज़िंदगी")}
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+            <button type="button" class="btn-primary" id="${prefix}Save"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+            <button type="button" id="${prefix}Reset" style="background:transparent;color:#a34f38;border:1px solid #d8b9aa;padding:10px 16px;border-radius:30px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> Reset to automatic</button>
+          </div>
+          <div id="${prefix}Status" style="margin-top:12px;color:#6f5b4e;font-size:13px;min-height:18px;"></div>
+          <div style="margin-top:16px;padding:16px;border-radius:16px;background:#fffaf6;border:1px solid #eaded4;">
+            <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#a05b42;font-weight:800;margin-bottom:8px;">Preview</div>
+            <div id="${prefix}Preview1" style="font-family:Georgia,serif;font-size:17px;line-height:1.6;color:#3f3029;">—</div>
+            <div id="${prefix}Preview2" style="font-family:Georgia,serif;font-size:17px;line-height:1.6;color:#3f3029;">—</div>
+            <div id="${prefix}PreviewWriter" style="font-weight:700;color:#9e4f36;margin-top:8px;">—</div>
+            <div id="${prefix}PreviewTag" style="color:#8a6a5b;font-size:12px;margin-top:5px;"></div>
+          </div>`;
+
+        document.getElementById("sherTodayForm").innerHTML = formHtml("sherToday");
+        document.getElementById("sherTomorrowForm").innerHTML = formHtml("sherTomorrow");
+
+        const setupCard = async (prefix, dateKey, label) => {
+          let mode = "poem";
+          const poemFields = document.getElementById(`${prefix}PoemFields`);
+          const manualFields = document.getElementById(`${prefix}ManualFields`);
+          const poemSelect = document.getElementById(`${prefix}PoemSelect`);
+          const line1 = document.getElementById(`${prefix}Line1`);
+          const line2 = document.getElementById(`${prefix}Line2`);
+          const writer = document.getElementById(`${prefix}Writer`);
+          const tag = document.getElementById(`${prefix}Tag`);
+          const status = document.getElementById(`${prefix}Status`);
+
+          poemSelect.innerHTML = '<option value="">Select a poem...</option>' + poemsForSher.map(p => {
+            const author = getAuthorName(p);
+            const lines = getPoemLines(p);
+            const disabled = lines.length < 2 ? " disabled" : "";
+            return `<option value="${escapeHtml(p._id)}"${disabled}>${escapeHtml(p.title || "Untitled")} — ${escapeHtml(author)}${lines.length < 2 ? " (2 lines required)" : ""}</option>`;
+          }).join("");
+
+          const setStatus = (message, success = false) => {
+            status.textContent = message;
+            status.style.color = success ? "#2f7d4a" : "#a34f38";
+          };
+
+          const updatePreview = () => {
+            let a = "", b = "", w = "";
+            if (mode === "poem") {
+              const poem = poemsForSher.find(p => p._id === poemSelect.value);
+              const lines = getPoemLines(poem);
+              a = lines[0] || ""; b = lines[1] || ""; w = getAuthorName(poem);
+            } else {
+              a = line1.value.trim(); b = line2.value.trim(); w = writer.value.trim();
+            }
+            document.getElementById(`${prefix}Preview1`).textContent = a || "—";
+            document.getElementById(`${prefix}Preview2`).textContent = b || "—";
+            document.getElementById(`${prefix}PreviewWriter`).textContent = w ? `— ${w}` : "—";
+            document.getElementById(`${prefix}PreviewTag`).textContent = tag.value.trim() ? `# ${tag.value.trim()}` : "";
+          };
+
+          const setMode = (nextMode) => {
+            mode = nextMode;
+            const active = "background:#c16a4b;color:white;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;";
+            const inactive = "background:#f4ece5;color:#5c4032;border:0;padding:12px 20px;border-radius:40px;font-weight:600;cursor:pointer;";
+            document.getElementById(`${prefix}PoemMode`).style.cssText = mode === "poem" ? active : inactive;
+            document.getElementById(`${prefix}ManualMode`).style.cssText = mode === "manual" ? active : inactive;
+            poemFields.style.display = mode === "poem" ? "block" : "none";
+            manualFields.style.display = mode === "manual" ? "block" : "none";
+            updatePreview();
+          };
+
+          const load = async () => {
+            try {
+              const response = await fetch(`${API_URL}/sher-of-the-day?date=${encodeURIComponent(dateKey)}`);
+              const data = await response.json();
+              const config = data.success ? data.config : null;
+              if (config?.sourceType === "manual") {
+                setMode("manual");
+                line1.value = config.line1 || "";
+                line2.value = config.line2 || "";
+                writer.value = config.writerName || "";
+              } else {
+                setMode("poem");
+                if (config?.poemId) poemSelect.value = config.poemId;
+              }
+              tag.value = config?.tag || "";
+              updatePreview();
+              setStatus(config ? `${label} का saved शेर loaded.` : `${label} के लिए अभी कोई custom शेर नहीं है।`, !!config);
+            } catch (error) {
+              console.error(error);
+              setStatus(`${label} का data load नहीं हो पाया।`);
+            }
+          };
+
+          document.getElementById(`${prefix}PoemMode`).onclick = () => setMode("poem");
+          document.getElementById(`${prefix}ManualMode`).onclick = () => setMode("manual");
+          poemSelect.onchange = updatePreview;
+          [line1, line2, writer, tag].forEach(el => el.addEventListener("input", updatePreview));
+
+          document.getElementById(`${prefix}Save`).onclick = async () => {
+            const payload = { dateKey, sourceType: mode, tag: tag.value.trim() };
+            if (mode === "poem") {
+              if (!poemSelect.value) return showToast(`${label}: Please select a poem`);
+              const poem = poemsForSher.find(p => p._id === poemSelect.value);
+              if (!poem || getPoemLines(poem).length < 2) return showToast(`${label}: Selected poem में कम से कम 2 lines होनी चाहिए`);
+              payload.poemId = poemSelect.value;
+            } else {
+              payload.line1 = line1.value.trim();
+              payload.line2 = line2.value.trim();
+              payload.writerName = writer.value.trim();
+              if (!payload.line1 || !payload.line2 || !payload.writerName) return showToast(`${label}: दोनों lines और writer name भरना जरूरी है`);
+            }
+
+            try {
+              const response = await fetch(`${API_URL}/sher-of-the-day`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const data = await response.json();
+              if (!data.success) throw new Error(data.message || "Save failed");
+              setStatus(`${label} का शेर successfully save हो गया।`, true);
+              showToast(`${label} का शेर save हो गया`);
+            } catch (error) {
+              console.error(error);
+              setStatus(error.message || "Save failed");
+              showToast(error.message || "Save failed");
+            }
+          };
+
+          document.getElementById(`${prefix}Reset`).onclick = async () => {
+            if (!confirm(`${label} का custom शेर reset करके automatic Sher of the Day दिखाना है?`)) return;
+            try {
+              const response = await fetch(`${API_URL}/sher-of-the-day?date=${encodeURIComponent(dateKey)}`, { method: "DELETE" });
+              const data = await response.json();
+              if (!data.success) throw new Error(data.message || "Reset failed");
+              poemSelect.value = "";
+              line1.value = ""; line2.value = ""; writer.value = ""; tag.value = "";
+              setMode("poem");
+              setStatus(`${label} automatic mode पर reset हो गया।`, true);
+              showToast(`${label} का शेर automatic mode पर reset हो गया`);
+            } catch (error) {
+              console.error(error);
+              setStatus(error.message || "Reset failed");
+              showToast(error.message || "Reset failed");
+            }
+          };
+
+          await load();
         };
-        await loadSherData();
+
+        await Promise.all([
+          setupCard("sherToday", todayKey, "आज"),
+          setupCard("sherTomorrow", tomorrowKey, "कल"),
+        ]);
+      }
+
+      async function renderLafzPage() {
+        const todayKey = getLocalDateKey(0);
+        const tomorrowKey = getLocalDateKey(1);
+
+        document.getElementById("mainPanel").innerHTML = `
+          <div class="page-header">
+            <div>
+              <h1>आज का लफ़्ज़</h1>
+              <p style="color:#7b6f67;margin-top:8px;">आज और कल के Word of the Day पहले से set करें। रात 12 बजे अगले दिन का लफ़्ज़ अपने आप live हो जाएगा।</p>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;align-items:start;">
+            <div class="glass-table" style="padding:26px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;">
+                <div>
+                  <h2 style="font-family:Georgia,serif;color:#5b3b2e;margin:0;">आज</h2>
+                  <div id="lafzTodayDate" style="color:#8a6a5b;margin-top:5px;font-size:13px;">${formatLafzDate(todayKey)}</div>
+                </div>
+                <span style="background:#f3e3da;color:#a34f38;padding:7px 12px;border-radius:30px;font-size:12px;font-weight:700;">LIVE TODAY</span>
+              </div>
+              <div id="lafzTodayForm"></div>
+            </div>
+
+            <div class="glass-table" style="padding:26px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;">
+                <div>
+                  <h2 style="font-family:Georgia,serif;color:#5b3b2e;margin:0;">कल</h2>
+                  <div id="lafzTomorrowDate" style="color:#8a6a5b;margin-top:5px;font-size:13px;">${formatLafzDate(tomorrowKey)}</div>
+                </div>
+                <span style="background:#eee7e1;color:#6f5b4e;padding:7px 12px;border-radius:30px;font-size:12px;font-weight:700;">NEXT DAY</span>
+              </div>
+              <div id="lafzTomorrowForm"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:24px;padding:18px 20px;border:1px solid #eaded4;border-radius:16px;background:#fffaf6;color:#6f5b4e;font-size:14px;line-height:1.7;">
+            <strong style="color:#5b3b2e;">कैसे काम करेगा:</strong> आज वाला लफ़्ज़ आज दिखेगा। कल वाला पहले से save रहेगा और local रात 12:00 बजे homepage पर अपने आप आज का लफ़्ज़ बन जाएगा। अगर किसी दिन admin ने लफ़्ज़ set नहीं किया है, तो existing automatic Word of the Day fallback चलता रहेगा।
+          </div>`;
+
+        const field = (id, label, placeholder, type = "input") => {
+          const control = type === "textarea"
+            ? `<textarea id="${id}" rows="3" placeholder="${placeholder}" style="width:100%;padding:13px 15px;border:1px solid #e5d9cf;border-radius:14px;resize:vertical;font-size:15px;box-sizing:border-box;"></textarea>`
+            : `<input id="${id}" placeholder="${placeholder}" style="width:100%;padding:13px 15px;border:1px solid #e5d9cf;border-radius:14px;font-size:15px;box-sizing:border-box;" />`;
+          return `<div style="margin-bottom:16px;"><label style="display:block;font-weight:700;margin-bottom:7px;color:#5c4032;">${label}</label>${control}</div>`;
+        };
+
+        const formHtml = (prefix) => `
+          ${field(`${prefix}Word`, "लफ़्ज़ / Word", "जैसे — तन्हाई")}
+          ${field(`${prefix}Urdu`, "उर्दू", "جیسے — تنہائی")}
+          ${field(`${prefix}Roman`, "Roman", "जैसे — tanhai")}
+          ${field(`${prefix}Meaning`, "अर्थ / Meaning", "जैसे — अकेलापन")}
+          ${field(`${prefix}English`, "English Meaning", "जैसे — Solitude")}
+          ${field(`${prefix}Explanation`, "व्याख्या / Explanation", "लफ़्ज़ का अर्थ और साहित्यिक भाव...", "textarea")}
+          ${field(`${prefix}Example`, "उदाहरण / Example", "जैसे — तन्हाई में भी एक पूरी दुनिया बसी होती है।", "textarea")}
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+            <button type="button" class="btn-primary" id="${prefix}Save"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+            <button type="button" id="${prefix}Reset" style="background:transparent;color:#a34f38;border:1px solid #d8b9aa;padding:10px 16px;border-radius:30px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> Reset to automatic</button>
+          </div>
+          <div id="${prefix}Status" style="margin-top:12px;color:#6f5b4e;font-size:13px;min-height:18px;"></div>`;
+
+        document.getElementById("lafzTodayForm").innerHTML = formHtml("lafzToday");
+        document.getElementById("lafzTomorrowForm").innerHTML = formHtml("lafzTomorrow");
+
+        const setupCard = async (prefix, dateKey, label) => {
+          const ids = ["Word", "Urdu", "Roman", "Meaning", "English", "Explanation", "Example"];
+          const values = {};
+          ids.forEach((name) => { values[name] = document.getElementById(`${prefix}${name}`); });
+          const status = document.getElementById(`${prefix}Status`);
+
+          const setStatus = (message, success = false) => {
+            status.textContent = message;
+            status.style.color = success ? "#2f7d4a" : "#a34f38";
+          };
+
+          const load = async () => {
+            try {
+              const response = await fetch(`${API_URL}/lafz-of-the-day?date=${encodeURIComponent(dateKey)}`);
+              const data = await response.json();
+              const lafz = data.success ? data.lafz : null;
+              ids.forEach((name) => { values[name].value = lafz?.[name.toLowerCase()] || ""; });
+              // API property names are lowercase, while the form uses PascalCase ids.
+              values.Word.value = lafz?.word || "";
+              values.Urdu.value = lafz?.urdu || "";
+              values.Roman.value = lafz?.roman || "";
+              values.Meaning.value = lafz?.meaning || "";
+              values.English.value = lafz?.english || "";
+              values.Explanation.value = lafz?.explanation || "";
+              values.Example.value = lafz?.example || "";
+              setStatus(lafz ? `${label} के लिए saved word loaded.` : `${label} के लिए अभी कोई custom word नहीं है।` , !!lafz);
+            } catch (error) {
+              console.error(error);
+              setStatus(`${label} का data load नहीं हो पाया।`);
+            }
+          };
+
+          document.getElementById(`${prefix}Save`).onclick = async () => {
+            const payload = {
+              dateKey,
+              word: values.Word.value.trim(),
+              urdu: values.Urdu.value.trim(),
+              roman: values.Roman.value.trim(),
+              meaning: values.Meaning.value.trim(),
+              english: values.English.value.trim(),
+              explanation: values.Explanation.value.trim(),
+              example: values.Example.value.trim(),
+            };
+
+            if (!payload.word || !payload.meaning || !payload.explanation || !payload.example) {
+              return showToast("Word, meaning, explanation और example भरना जरूरी है");
+            }
+
+            try {
+              const response = await fetch(`${API_URL}/lafz-of-the-day`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const data = await response.json();
+              if (!data.success) throw new Error(data.message || "Save failed");
+              setStatus(`${label} का लफ़्ज़ successfully save हो गया।`, true);
+              showToast(`${label} का लफ़्ज़ save हो गया`);
+            } catch (error) {
+              console.error(error);
+              setStatus(error.message || "Save failed");
+              showToast(error.message || "Save failed");
+            }
+          };
+
+          document.getElementById(`${prefix}Reset`).onclick = async () => {
+            if (!confirm(`${label} का custom लफ़्ज़ reset करके automatic Word of the Day दिखाना है?`)) return;
+            try {
+              const response = await fetch(`${API_URL}/lafz-of-the-day?date=${encodeURIComponent(dateKey)}`, { method: "DELETE" });
+              const data = await response.json();
+              if (!data.success) throw new Error(data.message || "Reset failed");
+              ids.forEach((name) => { values[name].value = ""; });
+              setStatus(`${label} automatic mode पर reset हो गया।`, true);
+              showToast(`${label} का लफ़्ज़ automatic mode पर reset हो गया`);
+            } catch (error) {
+              console.error(error);
+              setStatus(error.message || "Reset failed");
+              showToast(error.message || "Reset failed");
+            }
+          };
+
+          await load();
+        };
+
+        await Promise.all([
+          setupCard("lafzToday", todayKey, "आज"),
+          setupCard("lafzTomorrow", tomorrowKey, "कल"),
+        ]);
       }
 
       function renderSettings() {
@@ -1307,6 +1590,7 @@
         if (page === "dashboard") renderDashboard();
         else if (page === "poems") renderPoems();
         else if (page === "sher") renderSherPage();
+        else if (page === "lafz") renderLafzPage();
         else if (page === "users") renderUsers();
         else if (page === "settings") renderSettings();
         document.querySelectorAll(".menu a").forEach((link) => {
