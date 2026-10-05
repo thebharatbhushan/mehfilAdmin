@@ -553,6 +553,7 @@
         >
         <a data-page="sher"><i class="fa-solid fa-feather-pointed"></i> आज का शेर</a>
         <a data-page="lafz"><i class="fa-solid fa-language"></i> आज का लफ़्ज़</a>
+        <a data-page="weeklyWriter"><i class="fa-solid fa-crown"></i> सप्ताह के रचनाकार</a>
         <a data-page="poems"><i class="fa-solid fa-book-open"></i> Poems</a>
         <a data-page="users"><i class="fa-solid fa-users"></i> Users</a>
         <a data-page="settings"><i class="fa-solid fa-gear"></i> Settings</a>
@@ -1144,6 +1145,122 @@
         });
       }
 
+      async function renderWeeklyWriterPage() {
+        const todayKey = getLocalDateKey(0);
+        const tomorrowKey = getLocalDateKey(7);
+        const getMonday = (dateKey) => {
+          const [y, m, d] = dateKey.split("-").map(Number);
+          const date = new Date(y, m - 1, d);
+          const day = date.getDay();
+          const diff = day === 0 ? -6 : 1 - day;
+          date.setDate(date.getDate() + diff);
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        };
+        const addDays = (key, days) => {
+          const [y, m, d] = key.split("-").map(Number);
+          const date = new Date(y, m - 1, d);
+          date.setDate(date.getDate() + days);
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        };
+        const currentMonday = getMonday(todayKey);
+        const nextMonday = addDays(currentMonday, 7);
+        const formatWeek = (key) => new Date(`${key}T12:00:00`).toLocaleDateString("hi-IN", { day: "numeric", month: "long", year: "numeric" });
+
+        document.getElementById("mainPanel").innerHTML = `
+          <div class="page-header">
+            <div>
+              <h1>सप्ताह के रचनाकार</h1>
+              <p style="color:#7b6f67;margin-top:8px;">आप चाहें तो हर सप्ताह अपना रचनाकार चुनें। अगर चयन नहीं किया गया, तो system अपने आप एक रचनाकार चुनेगा और हर सोमवार रात 12:00 बजे नया सप्ताह शुरू होगा।</p>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;align-items:start;">
+            <div class="glass-table" style="padding:26px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;">
+                <div><h2 style="font-family:Georgia,serif;color:#5b3b2e;margin:0;">इस सप्ताह</h2><div style="color:#8a6a5b;margin-top:5px;font-size:13px;">${formatWeek(currentMonday)} से सोमवार तक</div></div>
+                <span style="background:#f3e3da;color:#a34f38;padding:7px 12px;border-radius:30px;font-size:12px;font-weight:700;">CURRENT</span>
+              </div>
+              <div id="weeklyCurrentForm"></div>
+            </div>
+            <div class="glass-table" style="padding:26px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;">
+                <div><h2 style="font-family:Georgia,serif;color:#5b3b2e;margin:0;">अगला सप्ताह</h2><div style="color:#8a6a5b;margin-top:5px;font-size:13px;">${formatWeek(nextMonday)} से</div></div>
+                <span style="background:#eee7e1;color:#6f5b4e;padding:7px 12px;border-radius:30px;font-size:12px;font-weight:700;">NEXT WEEK</span>
+              </div>
+              <div id="weeklyNextForm"></div>
+            </div>
+          </div>
+          <div style="margin-top:24px;padding:18px 20px;border:1px solid #eaded4;border-radius:16px;background:#fffaf6;color:#6f5b4e;font-size:14px;line-height:1.7;">
+            <strong style="color:#5b3b2e;">Automatic schedule:</strong> सप्ताह <strong>सोमवार</strong> से शुरू होगा और भारतीय समय (IST) के अनुसार <strong>रात 12:00 बजे</strong> नया रचनाकार live होगा। Admin selection सिर्फ उस specific week के लिए लागू होगा। Reset करने पर उस सप्ताह का automatic selection वापस आ जाएगा।
+          </div>`;
+
+        const eligibleUsers = users.filter(u => u && u._id);
+        const userOptions = '<option value="">Automatic (system will choose)</option>' + eligibleUsers.map(u => `<option value="${escapeHtml(u._id)}">${escapeHtml(`${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email || "User")}</option>`).join("");
+
+        const setup = async (prefix, weekStart, label) => {
+          const root = document.getElementById(`${prefix}Form`);
+          root.innerHTML = `
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:#5c4032;">रचनाकार चुनें</label>
+            <select id="${prefix}Select" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;background:#fff;font-size:15px;box-sizing:border-box;">${userOptions}</select>
+            <p id="${prefix}Status" style="margin:12px 0;color:#6f5b4e;font-size:13px;min-height:18px;"></p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button type="button" class="btn-primary" id="${prefix}Save"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+              <button type="button" id="${prefix}Reset" style="background:transparent;color:#a34f38;border:1px solid #d8b9aa;padding:10px 16px;border-radius:30px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> Automatic</button>
+            </div>
+          `;
+          const select = document.getElementById(`${prefix}Select`);
+          const status = document.getElementById(`${prefix}Status`);
+          try {
+            const response = await fetch(`${API_URL}/weekly-writer?weekStart=${encodeURIComponent(weekStart)}`);
+            const data = await response.json();
+            if (data.success && data.writerId) {
+              select.value = data.writerId;
+              status.textContent = `${label} में manually selected: ${data.writer?.firstName || ""} ${data.writer?.lastName || ""}`.trim();
+              status.style.color = "#2f7d4a";
+            } else {
+              select.value = "";
+              status.textContent = `${label}: Automatic mode — system writer choose करेगा।`;
+            }
+          } catch (error) {
+            console.error(error);
+            status.textContent = `${label} का data load नहीं हो पाया।`;
+          }
+
+          document.getElementById(`${prefix}Save`).onclick = async () => {
+            try {
+              const response = await fetch(`${API_URL}/weekly-writer`, {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ weekStart, writerId: select.value || null }),
+              });
+              const data = await response.json();
+              if (!data.success) throw new Error(data.message || "Save failed");
+              status.textContent = select.value ? `${label} का रचनाकार save हो गया।` : `${label} automatic mode पर है।`;
+              status.style.color = "#2f7d4a";
+              showToast(select.value ? `${label} का रचनाकार save हो गया` : `${label} automatic mode enabled`);
+            } catch (error) {
+              console.error(error);
+              showToast(error.message || "Save failed");
+            }
+          };
+
+          document.getElementById(`${prefix}Reset`).onclick = async () => {
+            try {
+              const response = await fetch(`${API_URL}/weekly-writer?weekStart=${encodeURIComponent(weekStart)}`, { method: "DELETE" });
+              const data = await response.json();
+              if (!data.success) throw new Error(data.message || "Reset failed");
+              select.value = "";
+              status.textContent = `${label} automatic mode पर reset हो गया।`;
+              status.style.color = "#2f7d4a";
+              showToast(`${label} automatic mode पर reset हो गया`);
+            } catch (error) {
+              console.error(error);
+              showToast(error.message || "Reset failed");
+            }
+          };
+        };
+
+        await Promise.all([setup("weeklyCurrent", currentMonday, "इस सप्ताह"), setup("weeklyNext", nextMonday, "अगला सप्ताह")]);
+      }
+
       // ======================== SETTINGS (untouched) ========================
       function getLocalDateKey(offset = 0) {
         const date = new Date();
@@ -1591,6 +1708,7 @@
         else if (page === "poems") renderPoems();
         else if (page === "sher") renderSherPage();
         else if (page === "lafz") renderLafzPage();
+        else if (page === "weeklyWriter") renderWeeklyWriterPage();
         else if (page === "users") renderUsers();
         else if (page === "settings") renderSettings();
         document.querySelectorAll(".menu a").forEach((link) => {
