@@ -554,6 +554,7 @@
         <a data-page="sher"><i class="fa-solid fa-feather-pointed"></i> आज का शेर</a>
         <a data-page="lafz"><i class="fa-solid fa-language"></i> आज का लफ़्ज़</a>
         <a data-page="weeklyWriter"><i class="fa-solid fa-crown"></i> सप्ताह के रचनाकार</a>
+        <a data-page="selectedPoem"><i class="fa-solid fa-feather-pointed"></i> चयनित रचना</a>
         <a data-page="poems"><i class="fa-solid fa-book-open"></i> Poems</a>
         <a data-page="users"><i class="fa-solid fa-users"></i> Users</a>
         <a data-page="settings"><i class="fa-solid fa-gear"></i> Settings</a>
@@ -1145,6 +1146,92 @@
         });
       }
 
+      async function renderSelectedPoemPage() {
+        document.getElementById("mainPanel").innerHTML = `
+          <div class="page-header">
+            <div>
+              <h1>चयनित रचना</h1>
+              <p style="color:#7b6f67;margin-top:8px;">यह फीचर Featured Poem से अलग है। यहाँ आप homepage के “चयनित रचना” section के लिए एक अलग रचना चुन सकते हैं।</p>
+            </div>
+          </div>
+          <div class="glass-table" style="padding:26px;max-width:900px;">
+            <div id="selectedPoemCurrent" style="margin-bottom:24px;"></div>
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:#5c4032;">रचना चुनें</label>
+            <select id="selectedPoemSelect" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;background:#fff;font-size:15px;box-sizing:border-box;">
+              <option value="">-- रचना चुनें --</option>
+            </select>
+            <div id="selectedPoemPreview" style="margin-top:18px;"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;">
+              <button type="button" class="btn-primary" id="selectedPoemSave"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+              <button type="button" id="selectedPoemClear" style="background:transparent;color:#a34f38;border:1px solid #d8b9aa;padding:10px 16px;border-radius:30px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> Remove Selection</button>
+            </div>
+            <p style="margin-top:18px;color:#7b6f67;font-size:13px;line-height:1.7;">Homepage पर केवल यही अलग चयन दिखेगा। Existing Featured Poems/Featured Poem functionality पर इसका कोई असर नहीं पड़ेगा।</p>
+          </div>`;
+
+        const select = document.getElementById("selectedPoemSelect");
+        const preview = document.getElementById("selectedPoemPreview");
+        const current = document.getElementById("selectedPoemCurrent");
+        const eligiblePoems = poems.filter(p => p && p._id);
+        eligiblePoems.forEach(p => {
+          const author = `${p.author?.firstName || ""} ${p.author?.lastName || ""}`.trim() || "अज्ञात रचनाकार";
+          const option = document.createElement("option");
+          option.value = p._id;
+          option.textContent = `${p.title || "बिना शीर्षक"} — ${author}`;
+          select.appendChild(option);
+        });
+
+        const renderPreview = (poem, target) => {
+          if (!poem) { target.innerHTML = ""; return; }
+          const author = `${poem.author?.firstName || ""} ${poem.author?.lastName || ""}`.trim() || "अज्ञात रचनाकार";
+          const image = poem.author?.profilePic || "";
+          target.innerHTML = `<div style="display:flex;gap:18px;align-items:center;padding:18px;border:1px solid #eaded4;border-radius:16px;background:#fffaf6;">
+            ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(author)}" style="width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid #f0dfd5;">` : `<div style="width:76px;height:76px;border-radius:50%;background:#eaded4;display:flex;align-items:center;justify-content:center;font-size:28px;">✍️</div>`}
+            <div><div style="font-weight:800;color:#5b3b2e;font-size:18px;">${escapeHtml(poem.title || "बिना शीर्षक")}</div><div style="color:#7b6f67;margin-top:5px;">${escapeHtml(author)}</div></div>
+          </div>`;
+        };
+
+        try {
+          const response = await fetch(`${API_URL}/selected-poem`);
+          const data = await response.json();
+          if (data.success && data.poemId) {
+            select.value = data.poemId;
+            current.innerHTML = `<div style="font-weight:800;color:#5b3b2e;margin-bottom:10px;">अभी चयनित रचना</div>`;
+            renderPreview(data.poem, current);
+            renderPreview(data.poem, preview);
+          } else {
+            current.innerHTML = `<div style="padding:16px;border-radius:14px;background:#fffaf6;color:#7b6f67;">अभी कोई अलग चयनित रचना सेट नहीं है।</div>`;
+          }
+        } catch (error) {
+          current.innerHTML = `<div style="color:#b34a3c;">Selected poem data load नहीं हो पाया।</div>`;
+        }
+
+        select.onchange = () => {
+          const poem = eligiblePoems.find(p => p._id === select.value);
+          renderPreview(poem, preview);
+        };
+
+        document.getElementById("selectedPoemSave").onclick = async () => {
+          if (!select.value) return showToast("पहले एक रचना चुनें");
+          try {
+            const response = await fetch(`${API_URL}/selected-poem`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ poemId: select.value }) });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.message || "Save failed");
+            showToast("चयनित रचना save हो गई");
+            await renderSelectedPoemPage();
+          } catch (error) { showToast(error.message || "Save failed"); }
+        };
+
+        document.getElementById("selectedPoemClear").onclick = async () => {
+          try {
+            const response = await fetch(`${API_URL}/selected-poem`, { method: "DELETE" });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.message || "Remove failed");
+            showToast("चयनित रचना remove हो गई");
+            await renderSelectedPoemPage();
+          } catch (error) { showToast(error.message || "Remove failed"); }
+        };
+      }
+
       async function renderWeeklyWriterPage() {
         const todayKey = getLocalDateKey(0);
         const tomorrowKey = getLocalDateKey(7);
@@ -1709,6 +1796,7 @@
         else if (page === "sher") renderSherPage();
         else if (page === "lafz") renderLafzPage();
         else if (page === "weeklyWriter") renderWeeklyWriterPage();
+        else if (page === "selectedPoem") renderSelectedPoemPage();
         else if (page === "users") renderUsers();
         else if (page === "settings") renderSettings();
         document.querySelectorAll(".menu a").forEach((link) => {
