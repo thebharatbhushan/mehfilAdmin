@@ -323,6 +323,31 @@
         cursor: pointer;
       }
 
+      .admin-user-profile { max-height: 62vh; overflow-y: auto; padding-right: 4px; }
+      .admin-user-profile-head { display:flex; gap:18px; align-items:center; padding:4px 0 22px; border-bottom:1px solid #f0e4dc; margin-bottom:20px; }
+      .admin-profile-large { width:82px; height:82px; border-radius:50%; object-fit:cover; border:3px solid #f0d5c7; flex:0 0 auto; }
+      .admin-profile-identity h3 { margin:0 0 5px; font-size:22px; color:#2c241f; }
+      .admin-profile-username { color:#c16a4b; font-weight:700; margin-bottom:3px; }
+      .admin-profile-email { color:#777; font-size:13px; margin-bottom:9px; word-break:break-word; }
+      .admin-profile-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+      .admin-profile-field,.admin-profile-block { padding:13px 14px; background:#fffaf6; border:1px solid #f1e4dc; border-radius:16px; }
+      .admin-profile-label { color:#9a796a; font-size:11px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin-bottom:5px; }
+      .admin-profile-value { color:#2c241f; font-size:14px; line-height:1.5; word-break:break-word; }
+      .admin-profile-block { margin-top:10px; }
+      .admin-profile-long { white-space:pre-wrap; }
+      .admin-profile-actions { margin-top:18px; display:flex; justify-content:flex-end; }
+      .edit-profile-scroll { max-height:62vh; overflow-y:auto; padding-right:5px; }
+      .admin-form-section { padding:16px; background:#fffaf6; border:1px solid #f1e4dc; border-radius:18px; margin-bottom:12px; }
+      .admin-form-section-title { color:#9e4f36; font-weight:800; font-size:14px; margin-bottom:13px; display:flex; gap:8px; align-items:center; }
+      .admin-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+      .admin-form-section label { display:block; color:#5f4d44; font-size:12px; font-weight:700; }
+      .admin-form-section input,.admin-form-section select,.admin-form-section textarea { margin-top:6px !important; margin-bottom:0 !important; border-radius:13px !important; padding:11px 13px !important; }
+      .admin-form-section textarea { resize:vertical; min-height:90px; }
+      .admin-hint { color:#9a8a82; font-weight:500; font-size:11px; }
+      .admin-form-section .admin-hint { display:block; margin-top:7px; }
+      .modal-container:has(.edit-profile-scroll) { max-width:820px; max-height:92vh; overflow:hidden; }
+      .modal-container:has(.admin-user-profile) { max-width:760px; max-height:92vh; overflow:hidden; }
+
       @keyframes fadeUp {
         from {
           opacity: 0;
@@ -349,6 +374,21 @@
         .main-panel {
           padding: 24px;
         }
+      }
+
+      @media (max-width: 600px) {
+        .modal-container { width: calc(100% - 24px); max-width:none; padding:20px; border-radius:24px; max-height:92vh; overflow:hidden; }
+        .modal-container:has(.edit-profile-scroll), .modal-container:has(.admin-user-profile) { max-width:none; }
+        .edit-profile-scroll,.admin-user-profile { max-height:64vh; }
+        .admin-form-grid,.admin-profile-grid { grid-template-columns:1fr; }
+        .admin-user-profile-head { align-items:flex-start; }
+        .admin-profile-large { width:68px; height:68px; }
+        .admin-profile-identity h3 { font-size:18px; }
+        .admin-profile-actions .btn-primary { width:100%; justify-content:center; }
+        .main-panel { padding:18px 14px; }
+        .page-header h1 { font-size:28px; }
+        .glass-table { padding:12px; border-radius:18px; }
+        table { min-width:720px; }
       }
 
       .toast {
@@ -597,10 +637,28 @@
       };
 
       function escapeHtml(str) {
-        if (!str) return "";
-        return str.replace(/[&<>]/g, (m) =>
-          m === "&" ? "&amp;" : m === "<" ? "&lt;" : "&gt;",
-        );
+        if (str === null || str === undefined) return "";
+        return String(str).replace(/[&<>"']/g, (m) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        })[m]);
+      }
+
+      function escapeAttr(str) {
+        return escapeHtml(str);
+      }
+
+      function formatDate(value) {
+        if (!value) return "Not added";
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? escapeHtml(value) : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+      }
+
+      function formatList(value) {
+        return Array.isArray(value) && value.length ? value.join(", ") : "Not added";
       }
 
       async function loadUsers() {
@@ -646,9 +704,14 @@
         const saveBtn = document.getElementById("modalSaveBtn");
         const newBtn = saveBtn.cloneNode(true);
         saveBtn.parentNode.replaceChild(newBtn, saveBtn);
-        newBtn.addEventListener("click", () => {
-          if (currentModalCallback) currentModalCallback();
-          closeModal();
+        newBtn.style.display = onSave ? "flex" : "none";
+        newBtn.disabled = false;
+        newBtn.addEventListener("click", async () => {
+          if (!currentModalCallback) return;
+          newBtn.disabled = true;
+          const result = await currentModalCallback();
+          if (result !== false) closeModal();
+          else newBtn.disabled = false;
         });
       }
       function closeModal() {
@@ -960,32 +1023,169 @@
       // ======================== USERS (unchanged + PROFILE PIC CLICK ENLARGE) ========================
       let userSearchTerm = "";
 
+      function userDisplayName(user) {
+        return `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Unnamed User";
+      }
+
+      function openUserProfile(id) {
+        const user = users.find((u) => u._id === id);
+        if (!user) return;
+        const profilePicUrl = user.profilePic || "https://res.cloudinary.com/djdvpnrnf/image/upload/v1780752284/profilePic_roaig0.png";
+        openModal(
+          `User Profile · ${userDisplayName(user)}`,
+          `
+          <div class="admin-user-profile">
+            <div class="admin-user-profile-head">
+              <img src="${escapeAttr(profilePicUrl)}" class="admin-profile-large" alt="Profile">
+              <div class="admin-profile-identity">
+                <h3>${escapeHtml(userDisplayName(user))}</h3>
+                <div class="admin-profile-username">@${escapeHtml(user.username || "not-added")}</div>
+                <div class="admin-profile-email">${escapeHtml(user.email || "Not added")}</div>
+                <span class="status-badge ${(user.status || "Active") === "Active" ? "status-active" : "status-blocked"}">${escapeHtml(user.status || "Active")}</span>
+              </div>
+            </div>
+
+            <div class="admin-profile-grid">
+              ${profileField("Username", user.username || "Not added")}
+              ${profileField("Email", user.email || "Not added")}
+              ${profileField("First Name", user.firstName || "Not added")}
+              ${profileField("Last Name", user.lastName || "Not added")}
+              ${profileField("Gender", user.gender || "Not added")}
+              ${profileField("Date of Birth", formatDate(user.dob))}
+              ${profileField("City", user.city || "Not added")}
+              ${profileField("State", user.state || "Not added")}
+              ${profileField("Country", user.country || "Not added")}
+              ${profileField("Highest Education", user.highestEducation || "Not added")}
+              ${profileField("Institution", user.institution || "Not added")}
+              ${profileField("Field of Study", user.fieldOfStudy || "Not added")}
+            </div>
+
+            <div class="admin-profile-block"><div class="admin-profile-label">About / Bio</div><div class="admin-profile-value admin-profile-long">${escapeHtml(user.bio || "Not added")}</div></div>
+            <div class="admin-profile-block"><div class="admin-profile-label">Literary Interests</div><div class="admin-profile-value">${escapeHtml(formatList(user.literaryInterests))}</div></div>
+            <div class="admin-profile-block"><div class="admin-profile-label">Languages</div><div class="admin-profile-value">${escapeHtml(formatList(user.languages))}</div></div>
+            <div class="admin-profile-block"><div class="admin-profile-label">Social Links</div><div class="admin-profile-value">${escapeHtml([user.socialLinks?.instagram, user.socialLinks?.x, user.socialLinks?.website, user.socialLinks?.linkedin].filter(Boolean).join(" · ") || "Not added")}</div></div>
+          </div>
+          <div class="admin-profile-actions">
+            <button class="btn-primary" type="button" id="viewEditUserBtn"><i class="fa-solid fa-pen"></i> Edit Complete Profile</button>
+          </div>
+          `,
+          null,
+        );
+        const saveButton = document.getElementById("modalSaveBtn");
+        if (saveButton) saveButton.style.display = "none";
+        document.getElementById("viewEditUserBtn")?.addEventListener("click", () => {
+          closeModal();
+          openEditUserModal(id);
+        });
+      }
+
+      function profileField(label, value) {
+        return `<div class="admin-profile-field"><div class="admin-profile-label">${escapeHtml(label)}</div><div class="admin-profile-value">${escapeHtml(value)}</div></div>`;
+      }
+
       function openEditUserModal(id) {
         const user = users.find((u) => u._id === id);
         if (!user) return;
+        const social = user.socialLinks || {};
         openModal(
-          "Edit User",
+          `Edit Complete Profile · ${userDisplayName(user)}`,
           `
-          <input id="editFirstName" placeholder="First Name" value="${escapeHtml(user.firstName)}">
-          <input id="editLastName" placeholder="Last Name" value="${escapeHtml(user.lastName)}">
-          <input id="editEmail" placeholder="Email" value="${escapeHtml(user.email)}">
+          <div class="edit-profile-scroll">
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-user"></i> Basic Information</div>
+              <div class="admin-form-grid">
+                <label>First Name<input id="editFirstName" value="${escapeAttr(user.firstName || "")}"></label>
+                <label>Last Name<input id="editLastName" value="${escapeAttr(user.lastName || "")}"></label>
+                <label>Username<input id="editUsername" value="${escapeAttr(user.username || "")}"></label>
+                <label>Email<input id="editEmail" type="email" value="${escapeAttr(user.email || "")}"></label>
+                <label>Gender<select id="editGender">
+                  <option value="male" ${user.gender === "male" ? "selected" : ""}>Male</option>
+                  <option value="female" ${user.gender === "female" ? "selected" : ""}>Female</option>
+                  <option value="non-binary" ${user.gender === "non-binary" ? "selected" : ""}>Non-binary</option>
+                  <option value="prefer-not" ${user.gender === "prefer-not" ? "selected" : ""}>Prefer not to say</option>
+                </select></label>
+                <label>Date of Birth<input id="editDob" type="date" value="${user.dob ? new Date(user.dob).toISOString().slice(0,10) : ""}"></label>
+              </div>
+            </div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-location-dot"></i> Location</div>
+              <div class="admin-form-grid">
+                <label>City<input id="editCity" value="${escapeAttr(user.city || "")}"></label>
+                <label>State<input id="editState" value="${escapeAttr(user.state || "")}"></label>
+                <label>Country<input id="editCountry" value="${escapeAttr(user.country || "")}"></label>
+              </div>
+            </div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-graduation-cap"></i> Education</div>
+              <div class="admin-form-grid">
+                <label>Highest Education<input id="editHighestEducation" value="${escapeAttr(user.highestEducation || "")}"></label>
+                <label>Institution / University<input id="editInstitution" value="${escapeAttr(user.institution || "")}"></label>
+                <label>Field of Study<input id="editFieldOfStudy" value="${escapeAttr(user.fieldOfStudy || "")}"></label>
+              </div>
+            </div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-feather-pointed"></i> Literary Profile</div>
+              <label>About / Bio<textarea id="editBio" rows="4">${escapeHtml(user.bio || "")}</textarea></label>
+              <label>Literary Interests <span class="admin-hint">comma separated</span><input id="editInterests" value="${escapeAttr((user.literaryInterests || []).join(", "))}"></label>
+              <label>Languages <span class="admin-hint">comma separated</span><input id="editLanguages" value="${escapeAttr((user.languages || []).join(", "))}"></label>
+            </div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-link"></i> Social Links</div>
+              <div class="admin-form-grid">
+                <label>Instagram<input id="editInstagram" value="${escapeAttr(social.instagram || "")}"></label>
+                <label>X / Twitter<input id="editX" value="${escapeAttr(social.x || "")}"></label>
+                <label>Website<input id="editWebsite" value="${escapeAttr(social.website || "")}"></label>
+                <label>LinkedIn<input id="editLinkedin" value="${escapeAttr(social.linkedin || "")}"></label>
+              </div>
+            </div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-image"></i> Profile Picture</div>
+              <label>Profile Picture URL<input id="editProfilePic" value="${escapeAttr(user.profilePic || "")}"></label>
+              <div class="admin-hint">Paste a valid image URL. Existing upload/profile-picture functionality remains unchanged.</div>
+            </div>
+          </div>
           `,
           async () => {
+            const interests = document.getElementById("editInterests").value.split(",").map(v => v.trim()).filter(Boolean);
+            const languages = document.getElementById("editLanguages").value.split(",").map(v => v.trim()).filter(Boolean);
+            const payload = {
+              firstName: document.getElementById("editFirstName").value,
+              lastName: document.getElementById("editLastName").value,
+              username: document.getElementById("editUsername").value,
+              email: document.getElementById("editEmail").value,
+              gender: document.getElementById("editGender").value,
+              dob: document.getElementById("editDob").value,
+              city: document.getElementById("editCity").value,
+              state: document.getElementById("editState").value,
+              country: document.getElementById("editCountry").value,
+              highestEducation: document.getElementById("editHighestEducation").value,
+              institution: document.getElementById("editInstitution").value,
+              fieldOfStudy: document.getElementById("editFieldOfStudy").value,
+              bio: document.getElementById("editBio").value,
+              literaryInterests: interests,
+              languages,
+              socialLinks: {
+                instagram: document.getElementById("editInstagram").value,
+                x: document.getElementById("editX").value,
+                website: document.getElementById("editWebsite").value,
+                linkedin: document.getElementById("editLinkedin").value,
+              },
+              profilePic: document.getElementById("editProfilePic").value,
+            };
+
             const response = await fetch(`${API_URL}/users/${id}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                firstName: document.getElementById("editFirstName").value,
-                lastName: document.getElementById("editLastName").value,
-                email: document.getElementById("editEmail").value,
-              }),
+              body: JSON.stringify(payload),
             });
             const data = await response.json();
-            if (data.success) {
-              await loadUsers();
-              renderUsers();
-              showToast("User updated");
+            if (!data.success) {
+              showToast(data.message || "Unable to update user");
+              return false;
             }
+            await loadUsers();
+            renderUsers();
+            showToast("Complete user profile updated");
+            return true;
           },
         );
       }
@@ -1028,7 +1228,7 @@
                            <div style="display:flex;align-items:center;gap:15px;">
                              <img src="${escapeHtml(profilePicUrl)}" alt="profile" class="avatar-clickable" data-profile-pic="${escapeHtml(profilePicUrl)}" data-username="${escapeHtml(user.firstName + " " + user.lastName)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover;border:2px solid #C16A4B;flex-shrink:0; cursor:pointer;">
                              <div>
-                               <div style="font-weight:700;">${escapeHtml(user.firstName + " " + user.lastName)}</div>
+                               <div style="font-weight:700;cursor:pointer;" data-action="viewUser" data-id="${user._id}">${escapeHtml(user.firstName + " " + user.lastName)}</div>
                                <div style="font-size:13px;color:#888;margin-top:4px;">${escapeHtml(user.email)}</div>
                              </div>
                            </div>
@@ -1041,6 +1241,7 @@
   </span>
 </td>
                           <td class="action-group">
+                              <button class="icon-btn view" data-action="viewUser" data-id="${user._id}"><i class="fa-solid fa-user"></i> View</button>
                               <button class="icon-btn edit" data-action="editUser" data-id="${user._id}"><i class="fa-solid fa-pen"></i> Edit</button>
                               <button class="icon-btn ${(user.status || "Active") === "Active" ? "block" : "unblock"}" data-action="toggleBlock" data-id="${user._id}"><i class="fa-solid ${(user.status || "Active") === "Active" ? "fa-ban" : "fa-check-circle"}"></i> ${(user.status || "Active") === "Active" ? "Block" : "Unblock"}</button>
                               <button class="icon-btn delete" data-action="deleteUser" data-id="${user._id}"><i class="fa-solid fa-trash"></i> Delete</button>
@@ -1059,6 +1260,13 @@
             userSearchTerm = e.target.value;
             renderUsers();
           });
+
+        document.querySelectorAll("[data-action='viewUser']").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            openUserProfile(id);
+          });
+        });
 
         document.querySelectorAll("[data-action='editUser']").forEach((btn) => {
           btn.addEventListener("click", () => {
