@@ -581,6 +581,24 @@
         font-family: monospace;
         z-index: 2001;
       }
+
+      /* ===== Feedback / Contact inbox (added) ===== */
+      .inbox-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+      .inbox-tab { border: 1px solid #eadfd3; background: #fff; color: #5b4a3f; padding: 8px 16px; border-radius: 60px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+      .inbox-tab.active { background: #c16a4b; border-color: #c16a4b; color: #fff; }
+      .inbox-tab small { opacity: 0.8; margin-left: 4px; }
+      .inbox-select { padding: 8px 14px; border-radius: 60px; border: 1px solid #eadfd3; background: #fff; font-size: 0.85rem; }
+      .inbox-wrap { overflow-x: auto; }
+      .inbox-wrap table { min-width: 760px; }
+      .inbox-snippet { max-width: 340px; color: #5b4a3f; font-size: 0.88rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+      .inbox-new td:first-child { box-shadow: inset 3px 0 0 #c16a4b; }
+      .status-new { background: #fdeee6; color: #b25538; }
+      .status-read { background: #eef1f7; color: #4a5d85; }
+      .status-resolved { background: #e8f3ea; color: #3f7a52; }
+      .inbox-stars { color: #d9a441; letter-spacing: 1px; white-space: nowrap; }
+      .inbox-detail dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7a6e; margin-top: 12px; }
+      .inbox-detail dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+      .inbox-detail .inbox-body { white-space: pre-wrap; background: #fcf8f4; border: 1px solid #eadfd3; border-radius: 14px; padding: 14px; line-height: 1.7; max-height: 45vh; overflow: auto; }
     </style>
   </head>
 
@@ -597,6 +615,8 @@
         <a data-page="selectedPoem"><i class="fa-solid fa-feather-pointed"></i> चयनित रचना</a>
         <a data-page="poems"><i class="fa-solid fa-book-open"></i> Poems</a>
         <a data-page="users"><i class="fa-solid fa-users"></i> Users</a>
+        <a data-page="feedback"><i class="fa-solid fa-comment-dots"></i> Feedback</a>
+        <a data-page="contact"><i class="fa-solid fa-envelope"></i> Contact Messages</a>
         <a data-page="settings"><i class="fa-solid fa-gear"></i> Settings</a>
       </div>
     </div>
@@ -2008,6 +2028,136 @@
           });
       }
 
+      // ======================== FEEDBACK + CONTACT INBOX (added) ========================
+      async function adminFetch(path, options = {}) {
+        return fetch(`${API_URL}${path}`, {
+          ...options,
+          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        });
+      }
+
+      const inboxState = {
+        feedback: { items: [], summary: { new: 0, read: 0, resolved: 0 }, status: "", type: "", error: "" },
+        contact: { items: [], summary: { new: 0, read: 0, resolved: 0 }, status: "", type: "", error: "" },
+      };
+      const FEEDBACK_TYPE_LABELS = {
+        general: "General", suggestion: "Suggestion", bug: "Bug / Issue",
+        content: "Content", feature: "Feature Request", other: "Other",
+      };
+      function formatDateTime(value) {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      }
+      function inboxUser(item) {
+        const u = item.userId;
+        return u && typeof u === "object" ? (u.username ? "@" + u.username : ((u.firstName || "") + " " + (u.lastName || "")).trim()) : "";
+      }
+
+      async function renderInbox(kind) {
+        const st = inboxState[kind];
+        const isFeedback = kind === "feedback";
+        document.getElementById("mainPanel").innerHTML =
+          `<div class="page-header"><h1>${isFeedback ? "User Feedback" : "Contact Messages"}</h1></div><div style="text-align:center;padding:40px">Loading...</div>`;
+        try {
+          const qs = new URLSearchParams();
+          if (st.status) qs.set("status", st.status);
+          if (isFeedback && st.type) qs.set("type", st.type);
+          const res = await adminFetch(`/${kind}?${qs.toString()}`);
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) throw new Error(data.message || "Could not load");
+          st.items = data.items;
+          st.summary = data.summary;
+          st.error = "";
+        } catch (err) {
+          st.items = [];
+          st.error = err.message || "Could not load";
+        }
+        drawInbox(kind);
+      }
+
+      function drawInbox(kind) {
+        const st = inboxState[kind];
+        const isFeedback = kind === "feedback";
+        const total = st.summary.new + st.summary.read + st.summary.resolved;
+        const tab = (value, label, count) =>
+          `<button class="inbox-tab ${st.status === value ? "active" : ""}" data-status="${value}">${label}<small>${count}</small></button>`;
+        const rows = st.items.map((it) => {
+          const stars = it.rating ? "★".repeat(it.rating) + "☆".repeat(5 - it.rating) : "—";
+          const who = inboxUser(it);
+          return `<tr class="${it.status === "new" ? "inbox-new" : ""}">
+            <td style="white-space:nowrap;font-size:0.82rem;color:#7a6a5e">${escapeHtml(formatDateTime(it.createdAt))}</td>
+            <td><div style="font-weight:700">${escapeHtml(it.name)}</div>
+                <div style="font-size:13px;color:#888">${escapeHtml(it.email)}</div>
+                ${who ? `<div style="font-size:12px;color:#c16a4b">Member ${escapeHtml(who)}</div>` : ""}</td>
+            ${isFeedback
+              ? `<td>${escapeHtml(FEEDBACK_TYPE_LABELS[it.feedbackType] || it.feedbackType)}</td><td><span class="inbox-stars">${stars}</span></td>`
+              : `<td style="font-weight:600">${escapeHtml(it.subject)}</td>`}
+            <td><div class="inbox-snippet">${escapeHtml(it.message)}</div></td>
+            <td><span class="status-badge status-${it.status}">${escapeHtml(it.status)}</span></td>
+            <td class="action-group">
+              <button class="icon-btn view" data-action="view" data-id="${it._id}"><i class="fa-solid fa-eye"></i> View</button>
+              ${it.status !== "read" ? `<button class="icon-btn edit" data-action="read" data-id="${it._id}"><i class="fa-solid fa-envelope-open"></i> Read</button>` : ""}
+              ${it.status !== "resolved" ? `<button class="icon-btn unblock" data-action="resolved" data-id="${it._id}"><i class="fa-solid fa-check-circle"></i> Resolve</button>` : `<button class="icon-btn edit" data-action="new" data-id="${it._id}"><i class="fa-solid fa-rotate-left"></i> Reopen</button>`}
+              <button class="icon-btn delete" data-action="delete" data-id="${it._id}"><i class="fa-solid fa-trash"></i></button>
+            </td></tr>`;
+        }).join("");
+        const cols = isFeedback ? 7 : 6;
+        const html = `<div class="page-header"><h1>${isFeedback ? "User Feedback" : "Contact Messages"}</h1></div>
+          <div class="inbox-tabs">
+            ${tab("", "All", total)}${tab("new", "New", st.summary.new)}${tab("read", "Read", st.summary.read)}${tab("resolved", "Resolved", st.summary.resolved)}
+            ${isFeedback ? `<select class="inbox-select" id="inboxType"><option value="">All types</option>${Object.entries(FEEDBACK_TYPE_LABELS).map(([v, l]) => `<option value="${v}" ${st.type === v ? "selected" : ""}>${l}</option>`).join("")}</select>` : ""}
+          </div>
+          ${st.error ? `<div class="glass-table" style="color:#b25538">⚠ ${escapeHtml(st.error)} <button class="icon-btn view" id="inboxRetry" style="margin-left:10px">Retry</button></div>` : ""}
+          <div class="glass-table inbox-wrap"><table><thead><tr><th>Date</th><th>From</th>${isFeedback ? "<th>Type</th><th>Rating</th>" : "<th>Subject</th>"}<th>Message</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="${cols}" style="text-align:center">No ${isFeedback ? "feedback" : "messages"} found</td></tr>`}</tbody></table></div>`;
+        document.getElementById("mainPanel").innerHTML = html;
+
+        document.querySelectorAll(".inbox-tab").forEach((b) => b.addEventListener("click", () => { st.status = b.dataset.status; renderInbox(kind); }));
+        document.getElementById("inboxType")?.addEventListener("change", (e) => { st.type = e.target.value; renderInbox(kind); });
+        document.getElementById("inboxRetry")?.addEventListener("click", () => renderInbox(kind));
+        document.querySelectorAll("#mainPanel [data-action]").forEach((btn) =>
+          btn.addEventListener("click", () => inboxAction(kind, btn.dataset.action, btn.dataset.id)));
+      }
+
+      async function setInboxStatus(kind, id, status) {
+        const res = await adminFetch(`/${kind}/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) { showToast(escapeHtml(data.message || "Update failed")); return false; }
+        return true;
+      }
+
+      async function inboxAction(kind, action, id) {
+        const st = inboxState[kind];
+        const item = st.items.find((x) => x._id === id);
+        if (!item) return;
+        try {
+          if (action === "view") {
+            const isFeedback = kind === "feedback";
+            const rows = [
+              ["Date", formatDateTime(item.createdAt)], ["Name", item.name], ["Email", item.email],
+              ["Account", inboxUser(item) || "Guest"],
+              ...(isFeedback ? [["Type", FEEDBACK_TYPE_LABELS[item.feedbackType] || item.feedbackType], ["Rating", item.rating ? item.rating + " / 5" : "Not given"]] : [["Subject", item.subject]]),
+              ["Status", item.status],
+            ];
+            openModal(isFeedback ? "Feedback" : "Contact message",
+              `<dl class="inbox-detail">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join("")}<dt>Message</dt><dd class="inbox-body">${escapeHtml(item.message)}</dd></dl>`, null);
+            if (item.status === "new" && (await setInboxStatus(kind, id, "read"))) { item.status = "read"; st.summary.new--; st.summary.read++; drawInbox(kind); }
+            return;
+          }
+          if (action === "delete") {
+            if (!confirm("Delete this entry permanently?")) return;
+            const res = await adminFetch(`/${kind}/${id}`, { method: "DELETE" });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) return showToast(escapeHtml(data.message || "Delete failed"));
+            showToast("Deleted");
+            return renderInbox(kind);
+          }
+          if (await setInboxStatus(kind, id, action)) { showToast(action === "resolved" ? "Marked resolved" : action === "read" ? "Marked read" : "Reopened"); renderInbox(kind); }
+        } catch (err) {
+          showToast(escapeHtml(err.message || "Something went wrong"));
+        }
+      }
+
       let currentPage = "dashboard";
       function loadPage(page) {
         currentPage = page;
@@ -2018,6 +2168,8 @@
         else if (page === "weeklyWriter") renderWeeklyWriterPage();
         else if (page === "selectedPoem") renderSelectedPoemPage();
         else if (page === "users") renderUsers();
+        else if (page === "feedback") renderInbox("feedback");
+        else if (page === "contact") renderInbox("contact");
         else if (page === "settings") renderSettings();
         document.querySelectorAll(".menu a").forEach((link) => {
           if (link.getAttribute("data-page") === page)
