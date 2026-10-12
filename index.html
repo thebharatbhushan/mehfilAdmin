@@ -599,6 +599,46 @@
       .inbox-detail dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7a6e; margin-top: 12px; }
       .inbox-detail dd { margin: 3px 0 0; overflow-wrap: anywhere; }
       .inbox-detail .inbox-body { white-space: pre-wrap; background: #fcf8f4; border: 1px solid #eadfd3; border-radius: 14px; padding: 14px; line-height: 1.7; max-height: 45vh; overflow: auto; }
+
+      /* ======================== XP / BADGES (progression) — additive ======================== */
+      .modal-container:has(.admin-prog) { max-width: 900px; max-height: 92vh; overflow: hidden; }
+      .admin-prog { max-height: calc(92vh - 110px); overflow-y: auto; padding-right: 6px; }
+      .prog-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 14px; }
+      .prog-card { background: #fffaf6; border: 1px solid #f1e4dc; border-radius: 18px; padding: 14px 16px; }
+      .prog-card .k { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: #9a8a82; text-transform: uppercase; }
+      .prog-card .v { font-size: 30px; font-weight: 800; color: #9e4f36; line-height: 1.2; margin-top: 4px; }
+      .prog-card .s { font-size: 12.5px; color: #5f4d44; margin-top: 4px; line-height: 1.5; }
+      .prog-bar { height: 8px; border-radius: 8px; background: #f1e4dc; overflow: hidden; margin-top: 8px; }
+      .prog-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #c16a4b, #9e4f36); border-radius: 8px; }
+      .prog-section-title { font-weight: 800; font-size: 14px; color: #9e4f36; margin: 18px 0 10px; display: flex; gap: 8px; align-items: center; }
+      .prog-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+      .prog-badge { border: 1px solid #f1e4dc; border-radius: 18px; padding: 14px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+      .prog-badge .head { display: flex; gap: 12px; align-items: center; }
+      .prog-badge .ic { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #c16a4b, #9e4f36); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; overflow: hidden; }
+      .prog-badge .ic img { width: 100%; height: 100%; object-fit: cover; }
+      .prog-badge .nm { font-weight: 800; color: #2c241f; }
+      .prog-badge .ds { font-size: 12px; color: #756256; line-height: 1.5; }
+      .prog-badge .cd { font-size: 12px; color: #5f4d44; }
+      .prog-badge .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+      .prog-tag { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 40px; background: #f4ece6; color: #7a5a4b; }
+      .prog-tag.ok { background: #e8f3ea; color: #3f7a52; }
+      .prog-tag.warn { background: #fdeee6; color: #b25538; }
+      .prog-badge.locked { background: #f6f4f1; }
+      .prog-badge.locked .ic, .prog-badge.locked .nm, .prog-badge.locked .ds { filter: grayscale(1); opacity: .75; }
+      .prog-badge.inactive { opacity: .55; border-style: dashed; }
+      .prog-badge .acts { display: flex; gap: 8px; margin-top: 4px; }
+      .prog-mini { border: 1px solid #e3cfc4; background: #fff; color: #9e4f36; font-weight: 700; font-size: 12px; border-radius: 40px; padding: 5px 13px; cursor: pointer; }
+      .prog-mini:hover { background: #fdeee6; }
+      .prog-mini.danger { color: #b3261e; border-color: #f1c6c3; }
+      .prog-adjust { display: grid; grid-template-columns: 130px 1fr auto; gap: 10px; align-items: end; }
+      .prog-adjust label { font-size: 12px; font-weight: 700; color: #5f4d44; }
+      .prog-adjust input { margin-top: 6px !important; margin-bottom: 0 !important; }
+      .prog-history { width: 100%; border-collapse: collapse; font-size: 13px; }
+      .prog-history th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #9a8a82; padding: 6px 8px; }
+      .prog-history td { padding: 8px; border-top: 1px solid #f1e4dc; vertical-align: top; }
+      .prog-pos { color: #3f7a52; font-weight: 800; } .prog-neg { color: #b3261e; font-weight: 800; }
+      .prog-table-wrap { overflow-x: auto; }
+      @media (max-width: 700px) { .prog-adjust { grid-template-columns: 1fr; } .modal-container:has(.admin-prog) { max-width: none; } }
     </style>
   </head>
 
@@ -615,6 +655,7 @@
         <a data-page="selectedPoem"><i class="fa-solid fa-feather-pointed"></i> चयनित रचना</a>
         <a data-page="poems"><i class="fa-solid fa-book-open"></i> Poems</a>
         <a data-page="users"><i class="fa-solid fa-users"></i> Users</a>
+        <a data-page="badges"><i class="fa-solid fa-medal"></i> Badges &amp; XP</a>
         <a data-page="feedback"><i class="fa-solid fa-comment-dots"></i> Feedback</a>
         <a data-page="contact"><i class="fa-solid fa-envelope"></i> Contact Messages</a>
         <a data-page="settings"><i class="fa-solid fa-gear"></i> Settings</a>
@@ -642,6 +683,10 @@
     <script>
       // ======================== DATA STORES (Exactly same backend connections, untouched) ========================
       const API_URL = "https://mehfilbackend.onrender.com/api/admin";
+      // Poems whose author account was deleted come back with author: null.
+      const authorFirst = (p) => (p && p.author && p.author.firstName) || "";
+      const authorLast = (p) => (p && p.author && p.author.lastName) || "";
+      const authorName = (p) => `${authorFirst(p)} ${authorLast(p)}`.trim() || "Deleted user";
       // const API_URL = "http://192.168.0.79:5000/api/admin";
 
       let users = [];
@@ -760,7 +805,7 @@
                       (p) => `
     <div style="padding:12px 0; border-bottom:1px solid #eee;">
       <strong>${escapeHtml(p.title)}</strong>
-      — ${escapeHtml(p.author.firstName + " " + p.author.lastName)}
+      — ${escapeHtml(authorName(p))}
       <span class="status-badge ${
         (p.status || "Approved") === "Approved"
           ? "status-approved"
@@ -779,13 +824,44 @@
       // ======================== ENHANCED POEMS SECTION (view improved, all backend functions preserved) ========================
       let poemSearchTerm = "";
       let poemStatusFilter = "all";
+      let poemSort = "latest";
+      const formatViews = (n) => Number(n || 0).toLocaleString("en-IN");
+
+      // ---- YouTube recitation helpers (only an 11-char video ID is ever embedded) ----
+      function extractYouTubeId(input) {
+        const raw = (input || "").trim();
+        if (!raw || raw.length > 300) return null;
+        const ID_RE = /^[A-Za-z0-9_-]{11}$/;
+        if (ID_RE.test(raw)) return raw;
+        let url;
+        try {
+          url = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
+        } catch (e) {
+          return null;
+        }
+        const host = url.hostname.toLowerCase();
+        const hosts = ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com", "youtu.be", "www.youtu.be"];
+        if (!hosts.includes(host)) return null;
+        let id = null;
+        if (host.endsWith("youtu.be")) id = url.pathname.split("/")[1];
+        else {
+          const parts = url.pathname.split("/").filter(Boolean);
+          if (parts[0] === "watch") id = url.searchParams.get("v");
+          else if (["shorts", "embed", "live", "v"].includes(parts[0])) id = parts[1];
+        }
+        return id && ID_RE.test(id) ? id : null;
+      }
+      function youtubePlayerHtml(id) {
+        if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) return "";
+        return `<div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#1d1814;border:1px solid #d8c08a;"><iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0" title="YouTube preview" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;inset:0;width:100%;height:100%;border:0;"></iframe></div>`;
+      }
 
       // Upgraded view poem function with beautiful poem card modal instead of basic alert
       function enhancedViewPoem(poemId) {
         const poem = poems.find((p) => p._id === poemId);
         if (!poem) return;
         const fullName = escapeHtml(
-          poem.author.firstName + " " + poem.author.lastName,
+          authorName(poem),
         );
         const poemTitle = escapeHtml(poem.title);
         const poemBody = escapeHtml(poem.body);
@@ -803,6 +879,7 @@
                     <span><i class="fa-regular fa-user"></i> ${fullName}</span>
                     <span class="status-badge ${statusClass}"><i class="fa-regular fa-bookmark"></i> ${poem.status}</span>
                     ${poem.createdAt ? `<span><i class="fa-regular fa-calendar"></i> ${new Date(poem.createdAt).toLocaleDateString()}</span>` : ""}
+                    <span><i class="fa-regular fa-eye"></i> ${formatViews(poem.views)} views</span>
                   </div>
                   <div class="poem-body-preview">
                     ${poemBody
@@ -813,6 +890,7 @@
                       )
                       .join("")}
                   </div>
+                  ${poem.youtubeVideoId ? `<div style="margin-top:20px;"><div style="font-weight:700;color:#9e4f36;margin-bottom:8px;"><i class="fa-solid fa-microphone-lines"></i> लेखक की आवाज़ में सुनें</div>${youtubePlayerHtml(poem.youtubeVideoId)}</div>` : ""}
                   <div style="margin-top:24px; display:flex; justify-content:flex-end;">
                     <button class="icon-btn edit" id="closePreviewBtn" style="background:#c16a4b20; color:#9e4f36;"><i class="fa-regular fa-circle-check"></i> Close</button>
                   </div>
@@ -842,16 +920,18 @@
         let filteredPoems = poems.filter((p) => {
           const matchesSearch =
             p.title.toLowerCase().includes(poemSearchTerm.toLowerCase()) ||
-            p.author.firstName
+            authorFirst(p)
               .toLowerCase()
               .includes(poemSearchTerm.toLowerCase()) ||
-            p.author.lastName
+            authorLast(p)
               .toLowerCase()
               .includes(poemSearchTerm.toLowerCase());
           const matchesStatus =
             poemStatusFilter === "all" || p.status === poemStatusFilter;
           return matchesSearch && matchesStatus;
         });
+        if (poemSort === "views")
+          filteredPoems = [...filteredPoems].sort((a, b) => (b.views || 0) - (a.views || 0));
 
         const html = `
                   <div class="page-header"><h1><i class="fa-regular fa-message"></i> Poems Management</h1>
@@ -865,11 +945,15 @@
                           <option value="Pending" ${poemStatusFilter === "Pending" ? "selected" : ""}>⏳ Pending</option>
                           <option value="Rejected" ${poemStatusFilter === "Rejected" ? "selected" : ""}>❌ Rejected</option>
                       </select>
+                      <select id="poemSortSelect">
+                          <option value="latest" ${poemSort === "latest" ? "selected" : ""}>🕒 Latest first</option>
+                          <option value="views" ${poemSort === "views" ? "selected" : ""}>👁️ Most views</option>
+                      </select>
                   </div>
                   <div class="glass-table" style="padding:0; overflow-x:auto;">
                   <table style="width:100%;">
                       <thead>
-                        <tr><th>📖 Poem & Excerpt</th><th>✍️ Author</th><th>🏷️ Status</th><th>⚡ Actions</th></tr>
+                        <tr><th>📖 Poem & Excerpt</th><th>✍️ Author</th><th>🏷️ Status</th><th>👁️ Views</th><th>⚡ Actions</th></tr>
                       </thead>
                       <tbody>
                       ${filteredPoems
@@ -889,7 +973,7 @@
                             <div style="font-weight:800; font-size:1.05rem; color:#9e4f36;">${escapeHtml(poem.title)}</div>
                             <div style="font-size:0.8rem; color:#7f6b5c; margin-top:6px;"><i class="fa-regular fa-file-lines"></i> ${escapeHtml(previewExcerpt)}</div>
                            </td>
-                          <td style="white-space:nowrap;"><i class="fa-regular fa-user-circle"></i> ${escapeHtml(poem.author.firstName + " " + poem.author.lastName)}</td>
+                          <td style="white-space:nowrap;"><i class="fa-regular fa-user-circle"></i> ${escapeHtml(authorName(poem))}</td>
                           <td>
                             <select class="status-select-enhanced" data-status-change="${poem._id}" style="border:none; background:${statusBg}; padding:6px 14px; border-radius:100px; font-weight:500;">
                               <option value="Approved" ${poem.status === "Approved" ? "selected" : ""}>✅ Approved</option>
@@ -897,6 +981,7 @@
                               <option value="Rejected" ${poem.status === "Rejected" ? "selected" : ""}>❌ Rejected</option>
                             </select>
                            </td>
+                          <td style="white-space:nowrap; font-weight:600;">${formatViews(poem.views)}</td>
                           <td class="action-group">
                             <button class="icon-btn edit" data-action="editPoem" data-id="${poem._id}"><i class="fa-solid fa-pen"></i> Edit</button>
                             <button class="icon-btn delete" data-action="deletePoem" data-id="${poem._id}"><i class="fa-solid fa-trash"></i> Delete</button>
@@ -906,7 +991,7 @@
                          </tr>`;
                         })
                         .join("")}
-                      ${filteredPoems.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:48px;">🌸 No poems found. Adjust filters or wait for submissions.</td>' : ""}
+                      ${filteredPoems.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding:48px;">🌸 No poems found. Adjust filters or wait for submissions.</td>' : ""}
                       </tbody>
                    </table>
                   </div>
@@ -923,6 +1008,12 @@
           .getElementById("poemStatusFilter")
           ?.addEventListener("change", (e) => {
             poemStatusFilter = e.target.value;
+            renderPoems();
+          });
+        document
+          .getElementById("poemSortSelect")
+          ?.addEventListener("change", (e) => {
+            poemSort = e.target.value;
             renderPoems();
           });
 
@@ -967,14 +1058,29 @@
             openModal(
               "Edit Poem",
               `
+      <div style="margin-bottom:8px;font-size:13px;color:#7b6f67;"><i class="fa-regular fa-eye"></i> Total Views: <strong style="color:#9e4f36;">${formatViews(poem.views)}</strong></div>
       <input id="editPoemTitle" value="${escapeHtml(poem.title)}" placeholder="Title">
       <textarea id="editPoemBody" rows="5" placeholder="Poem content">${escapeHtml(poem.body)}</textarea>
+      <div style="margin:4px 0 10px;">
+        <label for="editPoemYoutube" style="display:block;font-size:13px;font-weight:600;color:#9e4f36;margin-bottom:6px;"><i class="fa-solid fa-microphone-lines"></i> YouTube Link (Optional)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="editPoemYoutube" type="url" style="flex:1;margin:0;" value="${poem.youtubeVideoId ? "https://www.youtube.com/watch?v=" + escapeHtml(poem.youtubeVideoId) : ""}" placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX" autocomplete="off">
+          <button type="button" class="icon-btn delete" id="editPoemYoutubeRemove"><i class="fa-solid fa-xmark"></i> Remove YouTube Video</button>
+        </div>
+        <div id="editPoemYoutubeMsg" style="font-size:12px;margin-top:6px;"></div>
+        <div id="editPoemYoutubePreview" style="margin-top:10px;"></div>
+      </div>
       <select id="editPoemStatus">
         <option value="Approved" ${poem.status === "Approved" ? "selected" : ""}>Approved</option>
         <option value="Pending" ${poem.status === "Pending" ? "selected" : ""}>Pending</option>
         <option value="Rejected" ${poem.status === "Rejected" ? "selected" : ""}>Rejected</option>
       </select>`,
               async () => {
+                const ytRaw = document.getElementById("editPoemYoutube").value.trim();
+                if (ytRaw && !extractYouTubeId(ytRaw)) {
+                  alert("Please enter a valid YouTube video link.");
+                  return false;
+                }
                 const newTitle = document
                   .getElementById("editPoemTitle")
                   .value.trim();
@@ -991,6 +1097,7 @@
                     body: newBody,
                     category: poem.category,
                     tags: poem.tags,
+                    youtubeUrl: ytRaw,
                   }),
                 });
                 const data = await response.json();
@@ -998,9 +1105,44 @@
                   await loadPoems();
                   renderPoems();
                   showToast("Poem updated");
+                } else {
+                  alert(data.message || "Could not update poem");
+                  return false;
                 }
               },
             );
+            // YouTube field: live validation + preview + remove
+            const ytInput = document.getElementById("editPoemYoutube");
+            const ytMsg = document.getElementById("editPoemYoutubeMsg");
+            const ytPreview = document.getElementById("editPoemYoutubePreview");
+            const refreshYt = () => {
+              const v = ytInput.value.trim();
+              const id = extractYouTubeId(v);
+              if (!v) {
+                ytMsg.textContent = "";
+                ytPreview.innerHTML = "";
+              } else if (!id) {
+                ytMsg.style.color = "#b3402f";
+                ytMsg.textContent = "Please enter a valid YouTube video link.";
+                ytPreview.innerHTML = "";
+              } else {
+                ytMsg.textContent = "";
+                const cur = ytPreview.getAttribute("data-id");
+                if (cur !== id) {
+                  ytPreview.setAttribute("data-id", id);
+                  ytPreview.innerHTML = youtubePlayerHtml(id);
+                }
+              }
+              if (!v) ytPreview.removeAttribute("data-id");
+            };
+            ytInput.addEventListener("input", refreshYt);
+            document.getElementById("editPoemYoutubeRemove").addEventListener("click", () => {
+              ytInput.value = "";
+              refreshYt();
+              ytMsg.style.color = "#7b6f67";
+              ytMsg.textContent = "YouTube video will be removed when you save. The poem itself is not deleted.";
+            });
+            refreshYt();
           });
         });
 
@@ -1087,6 +1229,7 @@
           </div>
           <div class="admin-profile-actions">
             <button class="btn-primary" type="button" id="viewEditUserBtn"><i class="fa-solid fa-pen"></i> Edit Complete Profile</button>
+            <button class="btn-primary" type="button" id="viewProgressionBtn"><i class="fa-solid fa-medal"></i> XP &amp; Badges</button>
           </div>
           `,
           null,
@@ -1096,6 +1239,10 @@
         document.getElementById("viewEditUserBtn")?.addEventListener("click", () => {
           closeModal();
           openEditUserModal(id);
+        });
+        document.getElementById("viewProgressionBtn")?.addEventListener("click", () => {
+          closeModal();
+          openProgression(id);
         });
       }
 
@@ -1266,6 +1413,7 @@
                               <button class="icon-btn ${(user.status || "Active") === "Active" ? "block" : "unblock"}" data-action="toggleBlock" data-id="${user._id}"><i class="fa-solid ${(user.status || "Active") === "Active" ? "fa-ban" : "fa-check-circle"}"></i> ${(user.status || "Active") === "Active" ? "Block" : "Unblock"}</button>
                               <button class="icon-btn delete" data-action="deleteUser" data-id="${user._id}"><i class="fa-solid fa-trash"></i> Delete</button>
                               <button class="icon-btn view" data-action="featuredWriter" data-id="${user._id}"> ${user.featuredWriter ? "⭐ Featured" : "☆ Make Featured"}</button>
+                              <button class="icon-btn view" data-action="progression" data-id="${user._id}"><i class="fa-solid fa-medal"></i> XP &amp; Badges</button>
                           </td>
                          </tr>`;
                     })
@@ -2158,6 +2306,269 @@
         }
       }
 
+
+      // ======================== XP / BADGES / PROFILE FRAME (new, admin-only) ========================
+      // The XP/badge admin API follows the same pattern as every other admin call: no API key, no prompt.
+      async function progFetch(path, options = {}) {
+        try {
+          const response = await fetch(`${API_URL}${path}`, {
+            ...options,
+            headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+          });
+          const data = await response.json().catch(() => ({ success: false, message: "Unexpected server response" }));
+          return { ok: response.ok && data.success !== false, status: response.status, data };
+        } catch (error) {
+          return { ok: false, status: 0, data: { success: false, message: "Could not reach the server." } };
+        }
+      }
+
+      const FRAME_LABELS = { default: "Default", bronze: "Bronze", silver: "Silver", gold: "Gold", special: "Special" };
+      const CONDITION_LABELS = {
+        xp_threshold: "XP threshold",
+        poem_count: "Poems published",
+        poem_streak_weeks: "Weekly writing streak",
+        manual: "Editorial / admin awarded",
+      };
+
+      function badgeIconHtml(icon, name) {
+        const v = String(icon || "").trim();
+        if (/^fa-[a-z0-9-]{1,40}$/.test(v)) return `<i class="fa-solid ${v}"></i>`;
+        if (/^https:\/\/[^\s"'<>]{1,300}$/.test(v)) return `<img src="${escapeAttr(v)}" alt="">`;
+        return escapeHtml(v.slice(0, 4) || String(name || "?").slice(0, 1));
+      }
+
+      function conditionText(b) {
+        if (b.conditionType === "manual") return "Editorial / admin selection";
+        if (!b.threshold) return "Invalid condition (ignored)";
+        if (b.conditionType === "xp_threshold") return `${b.threshold} XP`;
+        if (b.conditionType === "poem_count") return `${b.threshold} poems published`;
+        if (b.conditionType === "poem_streak_weeks") return `${b.threshold} consecutive weeks with a poem`;
+        return "Unknown condition";
+      }
+
+      function progressText(b) {
+        const p = b.progress;
+        if (!p) return "Invalid definition — ignored by the engine";
+        if (p.manual) return escapeHtml(p.label);
+        return `Current: <b>${p.current}</b> ${escapeHtml(p.unit)} · Required: <b>${p.required}</b> · Remaining: <b>${p.remaining}</b>`;
+      }
+
+      function fmtDateTime(value) {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      }
+
+      function historyRowsHtml(items) {
+        if (!items.length) return `<tr><td colspan="5" style="text-align:center;color:#888">No XP activity yet</td></tr>`;
+        return items.map((t) => `
+          <tr>
+            <td class="${t.amount > 0 ? "prog-pos" : t.amount < 0 ? "prog-neg" : ""}">${t.amount > 0 ? "+" : ""}${t.amount}</td>
+            <td>${escapeHtml(t.eventType)}</td>
+            <td>${escapeHtml(t.reason || "—")}${t.referenceId ? `<div class="admin-hint">ref: ${escapeHtml(t.referenceId)}</div>` : ""}</td>
+            <td>${escapeHtml(fmtDateTime(t.createdAt))}</td>
+            <td>${t.adminId ? escapeHtml(t.adminId) : "—"}</td>
+          </tr>`).join("");
+      }
+
+      async function openProgression(userId) {
+        const { ok, data } = await progFetch(`/progression/users/${encodeURIComponent(userId)}`);
+        if (!ok) { showToast(escapeHtml(data.message || "Could not load progression")); return; }
+        const u = data.user;
+        const name = `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.username || "User";
+        const up = data.upcoming;
+        const pct = up && up.required ? Math.min(100, Math.round((up.current / up.required) * 100)) : 0;
+        const upHtml = up
+          ? `<div class="v" style="font-size:20px">${badgeIconHtml(up.icon, up.name)} ${escapeHtml(up.name)}</div>
+             <div class="s">${up.unit === "XP"
+               ? `Current XP: <b>${up.current}</b><br>Required XP: <b>${up.required}</b><br>Remaining XP: <b>${up.remaining}</b>`
+               : `Current: <b>${up.current}</b> ${escapeHtml(up.unit)}<br>Required: <b>${up.required}</b> ${escapeHtml(up.unit)}<br>Remaining: <b>${up.remaining}</b> ${escapeHtml(up.unit)}`}</div>
+             <div class="prog-bar"><span style="width:${pct}%"></span></div>`
+          : `<div class="s">No automatic badge left to earn. Editorial badges are shown below with their conditions.</div>`;
+
+        const badgesHtml = data.badges.map((b) => {
+          const unlocked = b.status === "unlocked";
+          const tags = [
+            unlocked ? `<span class="prog-tag ok">Unlocked${b.unlockedAt ? " · " + escapeHtml(formatDate(b.unlockedAt)) : ""}${b.source ? " · " + escapeHtml(b.source) : ""}</span>` : b.status === "revoked" ? `<span class="prog-tag warn">Revoked</span>` : `<span class="prog-tag">Locked</span>`,
+            b.active ? "" : `<span class="prog-tag warn">Inactive</span>`,
+            b.frameKey ? `<span class="prog-tag">Frame: ${escapeHtml(FRAME_LABELS[b.frameKey] || b.frameKey)}</span>` : "",
+          ].join("");
+          return `
+          <div class="prog-badge ${unlocked ? "" : "locked"} ${b.active ? "" : "inactive"}">
+            <div class="head"><span class="ic">${badgeIconHtml(b.icon, b.name)}</span><div><div class="nm">${escapeHtml(b.name)}</div><div class="cd">${escapeHtml(conditionText(b))}</div></div></div>
+            <div class="ds">${escapeHtml(b.description || "")}</div>
+            <div class="cd">${unlocked ? "" : progressText(b)}</div>
+            <div class="tags">${tags}</div>
+            <div class="acts">
+              ${unlocked
+                ? `<button class="prog-mini danger" data-prog="revoke" data-key="${escapeAttr(b.key)}">Revoke</button>`
+                : `<button class="prog-mini" data-prog="grant" data-key="${escapeAttr(b.key)}">Grant manually</button>`}
+            </div>
+          </div>`;
+        }).join("");
+
+        openModal(
+          `XP & Badges · ${name}`,
+          `<div class="admin-prog" data-user="${escapeAttr(userId)}">
+            <div class="prog-top">
+              <div class="prog-card"><div class="k">Current XP</div><div class="v" id="progXp">${data.xp ?? 0}</div><div class="s">${data.stats.poemCount} poems · best streak ${data.stats.streakWeeks} wk (current ${data.stats.currentStreakWeeks})</div></div>
+              <div class="prog-card"><div class="k">Profile frame</div><div class="v" style="font-size:22px">${escapeHtml(FRAME_LABELS[data.profileFrame.key] || data.profileFrame.name)}</div><div class="s">Derived from unlocked badges</div></div>
+              <div class="prog-card"><div class="k">Upcoming badge</div>${upHtml}</div>
+            </div>
+
+            <div class="prog-section-title"><i class="fa-solid fa-medal"></i> Badges <button class="prog-mini" data-prog="recalc" style="margin-left:auto">Re-evaluate</button></div>
+            <div class="prog-badges">${badgesHtml || '<div class="admin-hint">No badge definitions yet.</div>'}</div>
+
+            <div class="prog-section-title"><i class="fa-solid fa-sliders"></i> Manual XP adjustment</div>
+            <div class="admin-form-section">
+              <div class="prog-adjust">
+                <label>Amount <input id="progAmount" type="number" step="1" placeholder="+50 or -20"></label>
+                <label>Reason (required) <input id="progReason" maxlength="300" placeholder="Special editorial contribution"></label>
+                <button class="btn-primary" type="button" data-prog="adjust">Apply</button>
+              </div>
+              <span class="admin-hint">Every adjustment is logged with your name, the reason and the time. XP cannot go below 0.</span>
+            </div>
+
+            <div class="prog-section-title"><i class="fa-solid fa-clock-rotate-left"></i> XP history <span class="admin-hint" id="progHistCount">(${data.history.total})</span></div>
+            <div class="prog-table-wrap"><table class="prog-history"><thead><tr><th>Amount</th><th>Event</th><th>Reason</th><th>Date</th><th>Admin</th></tr></thead><tbody id="progHistBody">${historyRowsHtml(data.history.items)}</tbody></table></div>
+            <div style="text-align:center;margin-top:10px">${data.history.total > data.history.items.length ? `<button class="prog-mini" data-prog="more" data-page="2">Load more</button>` : ""}</div>
+          </div>`,
+          null,
+        );
+
+        const root = document.querySelector(".admin-prog");
+        let shown = data.history.items.length;
+        root.addEventListener("click", async (e) => {
+          const btn = e.target.closest("[data-prog]");
+          if (!btn) return;
+          const action = btn.getAttribute("data-prog");
+          if (action === "adjust") {
+            const amount = Number(document.getElementById("progAmount").value);
+            const reason = document.getElementById("progReason").value.trim();
+            if (!Number.isInteger(amount) || amount === 0) return showToast("Enter a non-zero whole number");
+            if (reason.length < 3) return showToast("A reason is required");
+            btn.disabled = true;
+            const res = await progFetch(`/progression/users/${encodeURIComponent(userId)}/xp-adjust`, { method: "POST", body: JSON.stringify({ amount, reason }) });
+            btn.disabled = false;
+            if (!res.ok) return showToast(escapeHtml(res.data.message || "Adjustment failed"));
+            showToast(`XP updated → ${res.data.xp}`);
+            openProgression(userId);
+          } else if (action === "grant" || action === "revoke") {
+            const key = btn.getAttribute("data-key");
+            const reason = window.prompt(action === "revoke" ? "Reason for revoking this badge (required):" : "Reason for granting this badge (optional):", "");
+            if (reason === null) return;
+            if (action === "revoke" && reason.trim().length < 3) return showToast("A reason is required to revoke");
+            const res = await progFetch(`/progression/users/${encodeURIComponent(userId)}/badges/${encodeURIComponent(key)}/${action}`, { method: "POST", body: JSON.stringify({ reason: reason.trim() }) });
+            if (!res.ok) return showToast(escapeHtml(res.data.message || "Failed"));
+            showToast(action === "grant" ? "Badge granted" : "Badge revoked");
+            openProgression(userId);
+          } else if (action === "recalc") {
+            const res = await progFetch(`/progression/users/${encodeURIComponent(userId)}/recalculate`, { method: "POST" });
+            if (!res.ok) return showToast(escapeHtml(res.data.message || "Failed"));
+            showToast(res.data.newlyUnlocked.length ? `Unlocked: ${res.data.newlyUnlocked.join(", ")}` : "Already up to date");
+            openProgression(userId);
+          } else if (action === "more") {
+            const page = Number(btn.getAttribute("data-page"));
+            const res = await progFetch(`/progression/users/${encodeURIComponent(userId)}/xp-history?page=${page}`);
+            if (!res.ok) return showToast(escapeHtml(res.data.message || "Failed"));
+            document.getElementById("progHistBody").insertAdjacentHTML("beforeend", historyRowsHtml(res.data.items));
+            shown += res.data.items.length;
+            if (shown >= res.data.total) btn.remove(); else btn.setAttribute("data-page", String(page + 1));
+          }
+        });
+      }
+
+      // ---------- Badge definitions page ----------
+      let badgeAdmin = { badges: [], options: null, error: "" };
+
+      async function renderBadgesPage() {
+        const panel = document.getElementById("mainPanel");
+        panel.innerHTML = `<div class="page-header"><h1>Badges</h1></div><div style="text-align:center;padding:40px">Loading...</div>`;
+        const { ok, data } = await progFetch("/badges");
+        if (!ok) {
+          panel.innerHTML = `<div class="page-header"><h1>Badges</h1></div><div class="glass-table"><p>${escapeHtml(data.message || "Could not load badges")}</p><br><button class="btn-primary" id="badgeRetryBtn"><i class="fa-solid fa-rotate"></i> Retry</button></div>`;
+          document.getElementById("badgeRetryBtn")?.addEventListener("click", () => renderBadgesPage());
+          return;
+        }
+        badgeAdmin = { badges: data.badges, options: data.options, error: "" };
+        const rules = data.options.xpRules || {};
+        const rulesHtml = Object.entries(rules).map(([k, r]) => `${escapeHtml(k)}: +${r.amount}`).concat(Object.entries(data.options.poetryMilestones || {}).map(([n, a]) => `${n} poems: +${a}`)).join(" · ");
+        panel.innerHTML = `
+          <div class="page-header"><h1>Badges</h1><button class="btn-primary" id="newBadgeBtn"><i class="fa-solid fa-plus"></i> New Badge</button></div>
+          <div class="glass-table" style="margin-bottom:20px"><b>Current XP rules</b> <span class="admin-hint">(set in server config)</span><div style="margin-top:6px;font-size:13px;color:#5f4d44">${rulesHtml}</div></div>
+          <div class="glass-table"><div class="prog-table-wrap"><table><thead><tr><th>Badge</th><th>Condition</th><th>Frame</th><th>Unlocked by</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+            ${data.badges.map((b) => `
+              <tr>
+                <td><div style="display:flex;gap:12px;align-items:center"><span class="prog-badge" style="padding:0;border:0;background:none"><span class="ic" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#c16a4b,#9e4f36);color:#fff;display:inline-flex;align-items:center;justify-content:center;overflow:hidden">${badgeIconHtml(b.icon, b.name)}</span></span><div><div style="font-weight:700">${escapeHtml(b.name)}</div><div class="admin-hint">${escapeHtml(b.key)}</div><div class="admin-hint">${escapeHtml(b.description || "")}</div></div></div></td>
+                <td>${escapeHtml(CONDITION_LABELS[b.conditionType] || b.conditionType)}${b.threshold ? `<div class="admin-hint">threshold: ${b.threshold}</div>` : ""}</td>
+                <td>${b.frameKey ? escapeHtml(FRAME_LABELS[b.frameKey] || b.frameKey) : "—"}</td>
+                <td>${b.unlockedCount} users</td>
+                <td><span class="status-badge ${b.active ? "status-active" : "status-blocked"}">${b.active ? "Active" : "Inactive"}</span></td>
+                <td class="action-group">
+                  <button class="icon-btn edit" data-badge-act="edit" data-key="${escapeAttr(b.key)}"><i class="fa-solid fa-pen"></i> Edit</button>
+                  <button class="icon-btn ${b.active ? "block" : "unblock"}" data-badge-act="toggle" data-key="${escapeAttr(b.key)}">${b.active ? "Deactivate" : "Activate"}</button>
+                </td>
+              </tr>`).join("") || '<tr><td colspan="6" style="text-align:center">No badges yet</td></tr>'}
+          </tbody></table></div></div>`;
+        document.getElementById("newBadgeBtn").addEventListener("click", () => openBadgeForm(null));
+        panel.querySelectorAll("[data-badge-act]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const key = btn.getAttribute("data-key");
+            const badge = badgeAdmin.badges.find((x) => x.key === key);
+            if (!badge) return;
+            if (btn.getAttribute("data-badge-act") === "edit") return openBadgeForm(badge);
+            const res = await progFetch(`/badges/${encodeURIComponent(key)}/active`, { method: "PATCH", body: JSON.stringify({ active: !badge.active }) });
+            if (!res.ok) return showToast(escapeHtml(res.data.message || "Failed"));
+            showToast(badge.active ? "Badge deactivated" : "Badge activated");
+            renderBadgesPage();
+          });
+        });
+      }
+
+      function openBadgeForm(badge) {
+        const isNew = !badge;
+        const b = badge || { key: "", name: "", description: "", icon: "fa-award", conditionType: "xp_threshold", threshold: 100, frameKey: null, sortOrder: 100, active: true };
+        const opts = badgeAdmin.options || { conditionTypes: Object.keys(CONDITION_LABELS), frames: Object.keys(FRAME_LABELS).map((k) => ({ key: k })) };
+        openModal(
+          isNew ? "New Badge" : `Edit Badge · ${b.name}`,
+          `<div class="admin-form-section">
+            <div class="admin-form-grid">
+              <label>Key <span class="admin-hint">letters, digits, underscore</span><input id="bdKey" value="${escapeAttr(b.key)}" ${isNew ? "" : "disabled"} placeholder="rising_poet"></label>
+              <label>Name<input id="bdName" value="${escapeAttr(b.name)}" maxlength="80"></label>
+              <label>Icon <span class="admin-hint">Font Awesome class (fa-star), https image URL or emoji</span><input id="bdIcon" value="${escapeAttr(b.icon)}"></label>
+              <label>Sort order<input id="bdSort" type="number" value="${escapeAttr(b.sortOrder)}"></label>
+              <label>Condition<select id="bdCond">${opts.conditionTypes.map((c) => `<option value="${c}" ${b.conditionType === c ? "selected" : ""}>${escapeHtml(CONDITION_LABELS[c] || c)}</option>`).join("")}</select></label>
+              <label>Threshold <span class="admin-hint">XP / poems / weeks (ignored for editorial)</span><input id="bdThreshold" type="number" min="1" step="1" value="${b.threshold ?? ""}"></label>
+              <label>Profile frame it grants<select id="bdFrame"><option value="">None</option>${opts.frames.filter((f) => f.key !== "default").map((f) => `<option value="${f.key}" ${b.frameKey === f.key ? "selected" : ""}>${escapeHtml(f.name || f.key)}</option>`).join("")}</select></label>
+              <label>Active<select id="bdActive"><option value="true" ${b.active ? "selected" : ""}>Active</option><option value="false" ${b.active ? "" : "selected"}>Inactive</option></select></label>
+            </div>
+            <label style="margin-top:12px">Description (shown to users)<textarea id="bdDesc" rows="3" maxlength="300">${escapeHtml(b.description || "")}</textarea></label>
+          </div>`,
+          async () => {
+            const payload = {
+              name: document.getElementById("bdName").value.trim(),
+              description: document.getElementById("bdDesc").value.trim(),
+              icon: document.getElementById("bdIcon").value.trim(),
+              sortOrder: Number(document.getElementById("bdSort").value),
+              conditionType: document.getElementById("bdCond").value,
+              threshold: document.getElementById("bdThreshold").value,
+              frameKey: document.getElementById("bdFrame").value,
+              active: document.getElementById("bdActive").value === "true",
+            };
+            if (isNew) payload.key = document.getElementById("bdKey").value.trim();
+            const res = await progFetch(isNew ? "/badges" : `/badges/${encodeURIComponent(b.key)}`, { method: isNew ? "POST" : "PUT", body: JSON.stringify(payload) });
+            if (!res.ok) { showToast(escapeHtml(res.data.message || "Could not save badge")); return false; }
+            showToast(isNew ? "Badge created" : "Badge updated");
+            renderBadgesPage();
+            return true;
+          },
+        );
+      }
+
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-action='progression']");
+        if (btn) openProgression(btn.getAttribute("data-id"));
+      });
+
       let currentPage = "dashboard";
       function loadPage(page) {
         currentPage = page;
@@ -2168,6 +2579,7 @@
         else if (page === "weeklyWriter") renderWeeklyWriterPage();
         else if (page === "selectedPoem") renderSelectedPoemPage();
         else if (page === "users") renderUsers();
+        else if (page === "badges") renderBadgesPage();
         else if (page === "feedback") renderInbox("feedback");
         else if (page === "contact") renderInbox("contact");
         else if (page === "settings") renderSettings();
