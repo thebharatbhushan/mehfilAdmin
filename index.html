@@ -652,6 +652,7 @@
         <a data-page="sher"><i class="fa-solid fa-feather-pointed"></i> आज का शेर</a>
         <a data-page="lafz"><i class="fa-solid fa-language"></i> आज का लफ़्ज़</a>
         <a data-page="weeklyWriter"><i class="fa-solid fa-crown"></i> सप्ताह के रचनाकार</a>
+        <a data-page="thursdayWriter"><i class="fa-solid fa-star"></i> गुरुवार का रचनाकार</a>
         <a data-page="selectedPoem"><i class="fa-solid fa-feather-pointed"></i> चयनित रचना</a>
         <a data-page="poems"><i class="fa-solid fa-book-open"></i> Poems</a>
         <a data-page="users"><i class="fa-solid fa-users"></i> Users</a>
@@ -1748,6 +1749,66 @@
         await Promise.all([setup("weeklyCurrent", currentMonday, "इस सप्ताह"), setup("weeklyNext", nextMonday, "अगला सप्ताह")]);
       }
 
+      async function renderThursdayWriterPage() {
+        document.getElementById("mainPanel").innerHTML = `
+          <div class="page-header">
+            <div>
+              <h1>गुरुवार का विशेष रचनाकार</h1>
+              <p style="color:#7b6f67;margin-top:8px;">यहाँ चुना गया रचनाकार वेबसाइट के रचनाकार पेज पर "गुरुवार का विशेष रचनाकार" में दिखेगा। चयन हटाने पर पेज अपना default दिखाएगा।</p>
+            </div>
+          </div>
+          <div class="glass-table" style="padding:26px;max-width:520px;">
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:#5c4032;">रचनाकार चुनें</label>
+            <select id="thursdaySelect" style="width:100%;padding:14px 16px;border:1px solid #e5d9cf;border-radius:14px;background:#fff;font-size:15px;box-sizing:border-box;"></select>
+            <p id="thursdayStatus" style="margin:12px 0;color:#6f5b4e;font-size:13px;min-height:18px;"></p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button type="button" class="btn-primary" id="thursdaySave"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+              <button type="button" id="thursdayClear" style="background:transparent;color:#a34f38;border:1px solid #d8b9aa;padding:10px 16px;border-radius:30px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> चयन हटाएँ</button>
+            </div>
+          </div>`;
+        const select = document.getElementById("thursdaySelect");
+        const status = document.getElementById("thursdayStatus");
+        select.innerHTML = '<option value="">— कोई चयन नहीं (default) —</option>' + users.filter(u => u && u._id).map(u => `<option value="${escapeHtml(u._id)}">${escapeHtml(`${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email || "User")}</option>`).join("");
+        try {
+          const response = await fetch(`${API_URL}/thursday-writer`);
+          const data = await response.json();
+          if (data.success && data.writerId) {
+            select.value = data.writerId;
+            status.textContent = `अभी चयनित: ${data.writer?.firstName || ""} ${data.writer?.lastName || ""}`.trim();
+            status.style.color = "#2f7d4a";
+          } else {
+            status.textContent = "अभी कोई रचनाकार चयनित नहीं है।";
+          }
+        } catch (error) {
+          console.error(error);
+          status.textContent = "Data load नहीं हो पाया।";
+        }
+        document.getElementById("thursdaySave").onclick = async () => {
+          try {
+            const response = await fetch(`${API_URL}/thursday-writer`, {
+              method: "PUT", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ writerId: select.value || null }),
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.message || "Save failed");
+            status.textContent = select.value ? "गुरुवार का रचनाकार save हो गया।" : "चयन हटा दिया गया।";
+            status.style.color = "#2f7d4a";
+            showToast(select.value ? "गुरुवार का रचनाकार save हो गया" : "चयन हटा दिया गया");
+          } catch (error) { showToast(error.message || "Save failed"); }
+        };
+        document.getElementById("thursdayClear").onclick = async () => {
+          try {
+            const response = await fetch(`${API_URL}/thursday-writer`, { method: "DELETE" });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.message || "Reset failed");
+            select.value = "";
+            status.textContent = "चयन हटा दिया गया।";
+            status.style.color = "#2f7d4a";
+            showToast("चयन हटा दिया गया");
+          } catch (error) { showToast(error.message || "Reset failed"); }
+        };
+      }
+
       // ======================== SETTINGS (untouched) ========================
       function getLocalDateKey(offset = 0) {
         const date = new Date();
@@ -2647,6 +2708,7 @@
         else if (page === "sher") renderSherPage();
         else if (page === "lafz") renderLafzPage();
         else if (page === "weeklyWriter") renderWeeklyWriterPage();
+        else if (page === "thursdayWriter") renderThursdayWriterPage();
         else if (page === "selectedPoem") renderSelectedPoemPage();
         else if (page === "users") renderUsers();
         else if (page === "badges") renderBadgesPage();
