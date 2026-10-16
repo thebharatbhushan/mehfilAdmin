@@ -682,12 +682,12 @@
 
     <script>
       // ======================== DATA STORES (Exactly same backend connections, untouched) ========================
-      const API_URL = "https://mehfilbackend.onrender.com/api/admin";
+      // const API_URL = "https://mehfilbackend.onrender.com/api/admin";
       // Poems whose author account was deleted come back with author: null.
       const authorFirst = (p) => (p && p.author && p.author.firstName) || "";
       const authorLast = (p) => (p && p.author && p.author.lastName) || "";
       const authorName = (p) => `${authorFirst(p)} ${authorLast(p)}`.trim() || "Deleted user";
-      // const API_URL = "http://192.168.0.79:5000/api/admin";
+      const API_URL = "http://192.168.0.79:5000/api/admin";
 
       let users = [];
       let poems = [];
@@ -728,7 +728,7 @@
 
       async function loadUsers() {
         try {
-          const response = await fetch(`${API_URL}/users`);
+          const response = await fetch(`${API_URL}/users?includeSuspended=1`);
           const data = await response.json();
           if (data.success) {
             users = data.users;
@@ -1203,7 +1203,7 @@
                 <h3>${escapeHtml(userDisplayName(user))}</h3>
                 <div class="admin-profile-username">@${escapeHtml(user.username || "not-added")}</div>
                 <div class="admin-profile-email">${escapeHtml(user.email || "Not added")}</div>
-                <span class="status-badge ${(user.status || "Active") === "Active" ? "status-active" : "status-blocked"}">${escapeHtml(user.status || "Active")}</span>
+                <span class="status-badge ${user.suspended ? "status-blocked" : "status-active"}">${user.suspended ? "Suspended" : "Active"}</span>
               </div>
             </div>
 
@@ -1401,16 +1401,14 @@
                            </div>
                          </td>
                          <td>
-  <span class="status-badge ${
-    (user.status || "Active") === "Active" ? "status-active" : "status-blocked"
-  }">
-    ${user.status || "Active"}
+  <span class="status-badge ${user.suspended ? "status-blocked" : "status-active"}">
+    ${user.suspended ? "Suspended" : "Active"}
   </span>
 </td>
                           <td class="action-group">
                               <button class="icon-btn view" data-action="viewUser" data-id="${user._id}"><i class="fa-solid fa-user"></i> View</button>
                               <button class="icon-btn edit" data-action="editUser" data-id="${user._id}"><i class="fa-solid fa-pen"></i> Edit</button>
-                              <button class="icon-btn ${(user.status || "Active") === "Active" ? "block" : "unblock"}" data-action="toggleBlock" data-id="${user._id}"><i class="fa-solid ${(user.status || "Active") === "Active" ? "fa-ban" : "fa-check-circle"}"></i> ${(user.status || "Active") === "Active" ? "Block" : "Unblock"}</button>
+                              <button class="icon-btn ${user.suspended ? "unblock" : "block"}" data-action="toggleBlock" data-id="${user._id}" title="${user.suspended ? "Show this member and their poems on the site again" : "Temporarily hide this member and their poems from the site"}"><i class="fa-solid ${user.suspended ? "fa-rotate-left" : "fa-pause"}"></i> ${user.suspended ? "Restore" : "Suspend"}</button>
                               <button class="icon-btn delete" data-action="deleteUser" data-id="${user._id}"><i class="fa-solid fa-trash"></i> Delete</button>
                               <button class="icon-btn view" data-action="featuredWriter" data-id="${user._id}"> ${user.featuredWriter ? "⭐ Featured" : "☆ Make Featured"}</button>
                               <button class="icon-btn view" data-action="progression" data-id="${user._id}"><i class="fa-solid fa-medal"></i> XP &amp; Badges</button>
@@ -1468,20 +1466,34 @@
               const id = btn.getAttribute("data-id");
               const user = users.find((u) => u._id === id);
 
-              if (user) {
-                const currentStatus = user.status || "Active";
-
-                const newStatus =
-                  currentStatus === "Active" ? "Blocked" : "Active";
-
-                user.status = newStatus;
-
-                showToast(
-                  `User ${newStatus === "Active" ? "unblocked" : "blocked"}`,
-                );
-
-                renderUsers();
+              if (!user) return;
+              const suspend = !user.suspended;
+              let reason = "";
+              if (suspend) {
+                const answer = window.prompt(`Suspend ${user.firstName || "this member"} temporarily?\n\nTheir profile and ALL their poems will be hidden from the site and they will be signed out. Nothing is deleted - Restore brings everything back.\n\nReason (optional, only you can see it):`, "");
+                if (answer === null) return;
+                reason = answer.trim();
               }
+              btn.disabled = true;
+              try {
+                const response = await fetch(`${API_URL}/users/${id}/suspend`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ suspended: suspend, reason }),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) {
+                  showToast(escapeHtml(data.message || "Could not update the account"));
+                  btn.disabled = false;
+                  return;
+                }
+                user.suspended = data.user.suspended;
+                user.suspendReason = data.user.suspendReason || "";
+                showToast(suspend ? "Member suspended - hidden from the site" : "Member restored - visible again");
+              } catch (error) {
+                showToast("Could not reach the server.");
+              }
+              renderUsers();
             });
           });
 
@@ -2241,10 +2253,12 @@
               ? `<td>${escapeHtml(FEEDBACK_TYPE_LABELS[it.feedbackType] || it.feedbackType)}</td><td><span class="inbox-stars">${stars}</span></td>`
               : `<td style="font-weight:600">${escapeHtml(it.subject)}</td>`}
             <td><div class="inbox-snippet">${escapeHtml(it.message)}</div></td>
-            <td><span class="status-badge status-${it.status}">${escapeHtml(it.status)}</span></td>
+            <td><span class="status-badge status-${it.status}">${escapeHtml(it.status)}</span>${isFeedback && it.verifyStatus ? `<div class="admin-hint">${it.verifyStatus === "verified" ? "✔ verified · " + escapeHtml(it.verifyKind || "") : escapeHtml(it.verifyStatus)}</div>` : ""}</td>
             <td class="action-group">
               <button class="icon-btn view" data-action="view" data-id="${it._id}"><i class="fa-solid fa-eye"></i> View</button>
               ${it.status !== "read" ? `<button class="icon-btn edit" data-action="read" data-id="${it._id}"><i class="fa-solid fa-envelope-open"></i> Read</button>` : ""}
+              ${isFeedback && it.userId ? `<button class="icon-btn unblock" data-action="verify" data-id="${it._id}" title="Count toward badges"><i class="fa-solid fa-circle-check"></i> ${it.verifyStatus === "verified" ? "Verified" : "Verify"}</button>` : ""}
+              ${isFeedback && it.verifyStatus ? `<button class="icon-btn edit" data-action="unverify" data-id="${it._id}" title="Clear verification (earned badges stay)"><i class="fa-solid fa-ban"></i> Clear</button>` : ""}
               ${it.status !== "resolved" ? `<button class="icon-btn unblock" data-action="resolved" data-id="${it._id}"><i class="fa-solid fa-check-circle"></i> Resolve</button>` : `<button class="icon-btn edit" data-action="new" data-id="${it._id}"><i class="fa-solid fa-rotate-left"></i> Reopen</button>`}
               <button class="icon-btn delete" data-action="delete" data-id="${it._id}"><i class="fa-solid fa-trash"></i></button>
             </td></tr>`;
@@ -2292,6 +2306,21 @@
             if (item.status === "new" && (await setInboxStatus(kind, id, "read"))) { item.status = "read"; st.summary.new--; st.summary.read++; drawInbox(kind); }
             return;
           }
+          if (action === "verify" || action === "unverify") {
+            let payload = { action: "reset" };
+            if (action === "verify") {
+              const dflt = item.feedbackType === "suggestion" ? "suggestion" : item.feedbackType === "bug" ? "bug" : "contribution";
+              const vkind = (window.prompt("Count this as a verified: suggestion, bug or contribution?\n(Genuine and useful items only — it counts toward badges for the member.)", dflt) || "").trim().toLowerCase();
+              if (!vkind) return;
+              if (!["suggestion", "bug", "contribution"].includes(vkind)) return showToast("Type must be suggestion, bug or contribution");
+              payload = { action: "verify", kind: vkind };
+            }
+            const res = await adminFetch(`/feedback/${id}/verify`, { method: "PATCH", body: JSON.stringify(payload) });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) return showToast(escapeHtml(data.message || "Update failed"));
+            showToast(action === "verify" ? (data.newlyUnlocked && data.newlyUnlocked.length ? "Verified — badge awarded" : "Verified") : "Verification cleared");
+            return renderInbox(kind);
+          }
           if (action === "delete") {
             if (!confirm("Delete this entry permanently?")) return;
             const res = await adminFetch(`/${kind}/${id}`, { method: "DELETE" });
@@ -2328,6 +2357,29 @@
         poem_count: "Poems published",
         poem_streak_weeks: "Weekly writing streak",
         manual: "Editorial / admin awarded",
+        eligible_poem_count: "Eligible original poems",
+        eligible_poem_days: "Eligible poems on distinct days",
+        distinct_readers: "Distinct readers of the author's poems",
+        reading_days: "Verified reading days",
+        poems_read: "Distinct poems read",
+        poems_bookmarked: "Distinct poems saved",
+        poems_appreciated: "Distinct poems liked",
+        verified_suggestions: "Admin-approved suggestions",
+        verified_contributions: "Admin-verified contributions",
+        verified_bugs: "Admin-verified bug reports",
+        early_supporter: "Early supporter (registration cutoff)",
+      };
+      const AWARD_MODE_LABELS = {
+        auto: "Automatic",
+        approval: "Needs admin approval",
+        config: "Server setting",
+        manual: "Manual only",
+      };
+      const CONDITION_UNITS = {
+        eligible_poem_count: "eligible poems", eligible_poem_days: "distinct days with an eligible poem",
+        distinct_readers: "distinct readers", reading_days: "reading days", poems_read: "distinct poems read",
+        poems_bookmarked: "distinct poems saved", poems_appreciated: "distinct poems liked",
+        verified_suggestions: "verified suggestion(s)", verified_contributions: "verified contributions", verified_bugs: "verified bug reports",
       };
 
       function badgeIconHtml(icon, name) {
@@ -2338,11 +2390,13 @@
       }
 
       function conditionText(b) {
-        if (b.conditionType === "manual") return "Editorial / admin selection";
+        if (b.conditionType === "manual") return b.key === "sansthapak" ? "Manual only — founder accounts listed in server setting FOUNDER_USER_IDS" : "Editorial / admin selection";
+        if (b.conditionType === "early_supporter") return "Account created on/before the server's EARLY_SUPPORTER_CUTOFF";
         if (!b.threshold) return "Invalid condition (ignored)";
         if (b.conditionType === "xp_threshold") return `${b.threshold} XP`;
         if (b.conditionType === "poem_count") return `${b.threshold} poems published`;
         if (b.conditionType === "poem_streak_weeks") return `${b.threshold} consecutive weeks with a poem`;
+        if (CONDITION_UNITS[b.conditionType]) return `${b.threshold} ${CONDITION_UNITS[b.conditionType]}`;
         return "Unknown condition";
       }
 
@@ -2350,6 +2404,7 @@
         const p = b.progress;
         if (!p) return "Invalid definition — ignored by the engine";
         if (p.manual) return escapeHtml(p.label);
+        if (p.binary) return `${escapeHtml(p.label)}: <b>${p.met ? "met" : "not met"}</b>`;
         return `Current: <b>${p.current}</b> ${escapeHtml(p.unit)} · Required: <b>${p.required}</b> · Remaining: <b>${p.remaining}</b>`;
       }
 
@@ -2391,6 +2446,7 @@
             unlocked ? `<span class="prog-tag ok">Unlocked${b.unlockedAt ? " · " + escapeHtml(formatDate(b.unlockedAt)) : ""}${b.source ? " · " + escapeHtml(b.source) : ""}</span>` : b.status === "revoked" ? `<span class="prog-tag warn">Revoked</span>` : `<span class="prog-tag">Locked</span>`,
             b.active ? "" : `<span class="prog-tag warn">Inactive</span>`,
             b.frameKey ? `<span class="prog-tag">Frame: ${escapeHtml(FRAME_LABELS[b.frameKey] || b.frameKey)}</span>` : "",
+            b.awardMode ? `<span class="prog-tag">${escapeHtml(AWARD_MODE_LABELS[b.awardMode] || b.awardMode)}</span>` : "",
           ].join("");
           return `
           <div class="prog-badge ${unlocked ? "" : "locked"} ${b.active ? "" : "inactive"}">
@@ -2495,19 +2551,23 @@
         panel.innerHTML = `
           <div class="page-header"><h1>Badges</h1><button class="btn-primary" id="newBadgeBtn"><i class="fa-solid fa-plus"></i> New Badge</button></div>
           <div class="glass-table" style="margin-bottom:20px"><b>Current XP rules</b> <span class="admin-hint">(set in server config)</span><div style="margin-top:6px;font-size:13px;color:#5f4d44">${rulesHtml}</div></div>
-          <div class="glass-table"><div class="prog-table-wrap"><table><thead><tr><th>Badge</th><th>Condition</th><th>Frame</th><th>Unlocked by</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+          <div class="glass-table" style="margin-bottom:20px"><b>Special badge settings</b> <span class="admin-hint">(read-only; set in the server environment)</span>
+            <div style="margin-top:6px;font-size:13px;color:#5f4d44">Early Supporter cutoff (<code>EARLY_SUPPORTER_CUTOFF</code>): ${data.options.earlySupporterCutoff ? escapeHtml(fmtDateTime(data.options.earlySupporterCutoff)) : "<b>not set</b> — nobody qualifies yet"} · Founder accounts (<code>FOUNDER_USER_IDS</code>): ${Number(data.options.founderAccountsConfigured) || 0} configured</div>
+            <div class="admin-hint" style="margin-top:4px">Suggestion / bug / contribution badges are approved from <b>User Feedback</b> (Verify button).</div></div>
+          <div class="glass-table"><div class="prog-table-wrap"><table><thead><tr><th>Badge</th><th>Condition</th><th>Awarded</th><th>Frame</th><th>Unlocked by</th><th>Status</th><th>Actions</th></tr></thead><tbody>
             ${data.badges.map((b) => `
               <tr>
                 <td><div style="display:flex;gap:12px;align-items:center"><span class="prog-badge" style="padding:0;border:0;background:none"><span class="ic" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#c16a4b,#9e4f36);color:#fff;display:inline-flex;align-items:center;justify-content:center;overflow:hidden">${badgeIconHtml(b.icon, b.name)}</span></span><div><div style="font-weight:700">${escapeHtml(b.name)}</div><div class="admin-hint">${escapeHtml(b.key)}</div><div class="admin-hint">${escapeHtml(b.description || "")}</div></div></div></td>
                 <td>${escapeHtml(CONDITION_LABELS[b.conditionType] || b.conditionType)}${b.threshold ? `<div class="admin-hint">threshold: ${b.threshold}</div>` : ""}</td>
+                <td>${escapeHtml(AWARD_MODE_LABELS[b.awardMode] || "—")}</td>
                 <td>${b.frameKey ? escapeHtml(FRAME_LABELS[b.frameKey] || b.frameKey) : "—"}</td>
-                <td>${b.unlockedCount} users</td>
+                <td>${b.unlockedCount} users${b.unlockedCount ? `<div><button class="icon-btn view" data-badge-act="holders" data-key="${escapeAttr(b.key)}"><i class="fa-solid fa-users"></i> Recipients</button></div>` : ""}</td>
                 <td><span class="status-badge ${b.active ? "status-active" : "status-blocked"}">${b.active ? "Active" : "Inactive"}</span></td>
                 <td class="action-group">
                   <button class="icon-btn edit" data-badge-act="edit" data-key="${escapeAttr(b.key)}"><i class="fa-solid fa-pen"></i> Edit</button>
                   <button class="icon-btn ${b.active ? "block" : "unblock"}" data-badge-act="toggle" data-key="${escapeAttr(b.key)}">${b.active ? "Deactivate" : "Activate"}</button>
                 </td>
-              </tr>`).join("") || '<tr><td colspan="6" style="text-align:center">No badges yet</td></tr>'}
+              </tr>`).join("") || '<tr><td colspan="7" style="text-align:center">No badges yet</td></tr>'}
           </tbody></table></div></div>`;
         document.getElementById("newBadgeBtn").addEventListener("click", () => openBadgeForm(null));
         panel.querySelectorAll("[data-badge-act]").forEach((btn) => {
@@ -2516,12 +2576,22 @@
             const badge = badgeAdmin.badges.find((x) => x.key === key);
             if (!badge) return;
             if (btn.getAttribute("data-badge-act") === "edit") return openBadgeForm(badge);
+            if (btn.getAttribute("data-badge-act") === "holders") return openBadgeHolders(badge);
             const res = await progFetch(`/badges/${encodeURIComponent(key)}/active`, { method: "PATCH", body: JSON.stringify({ active: !badge.active }) });
             if (!res.ok) return showToast(escapeHtml(res.data.message || "Failed"));
             showToast(badge.active ? "Badge deactivated" : "Badge activated");
             renderBadgesPage();
           });
         });
+      }
+
+      async function openBadgeHolders(badge) {
+        const res = await progFetch(`/badges/${encodeURIComponent(badge.key)}/holders`);
+        if (!res.ok) return showToast(escapeHtml(res.data.message || "Could not load recipients"));
+        const rows = (res.data.holders || []).map((h) => `<tr>
+          <td>${escapeHtml(((h.firstName || "") + " " + (h.lastName || "")).trim() || "—")}${h.username ? `<div class="admin-hint">@${escapeHtml(h.username)}</div>` : ""}</td>
+          <td>${h.unlockedAt ? escapeHtml(fmtDateTime(h.unlockedAt)) : "—"}</td><td>${escapeHtml(h.source || "—")}</td></tr>`).join("");
+        openModal(`Recipients · ${badge.name}`, `<div class="prog-table-wrap"><table><thead><tr><th>Member</th><th>Awarded</th><th>How</th></tr></thead><tbody>${rows || '<tr><td colspan="3" style="text-align:center">No recipients</td></tr>'}</tbody></table></div>${res.data.truncated ? '<div class="admin-hint">Showing the most recent 200.</div>' : ""}`, null);
       }
 
       function openBadgeForm(badge) {
@@ -2537,7 +2607,7 @@
               <label>Icon <span class="admin-hint">Font Awesome class (fa-star), https image URL or emoji</span><input id="bdIcon" value="${escapeAttr(b.icon)}"></label>
               <label>Sort order<input id="bdSort" type="number" value="${escapeAttr(b.sortOrder)}"></label>
               <label>Condition<select id="bdCond">${opts.conditionTypes.map((c) => `<option value="${c}" ${b.conditionType === c ? "selected" : ""}>${escapeHtml(CONDITION_LABELS[c] || c)}</option>`).join("")}</select></label>
-              <label>Threshold <span class="admin-hint">XP / poems / weeks (ignored for editorial)</span><input id="bdThreshold" type="number" min="1" step="1" value="${b.threshold ?? ""}"></label>
+              <label>Threshold <span class="admin-hint">count to reach (ignored for editorial and early-supporter badges)</span><input id="bdThreshold" type="number" min="1" step="1" value="${b.threshold ?? ""}"></label>
               <label>Profile frame it grants<select id="bdFrame"><option value="">None</option>${opts.frames.filter((f) => f.key !== "default").map((f) => `<option value="${f.key}" ${b.frameKey === f.key ? "selected" : ""}>${escapeHtml(f.name || f.key)}</option>`).join("")}</select></label>
               <label>Active<select id="bdActive"><option value="true" ${b.active ? "selected" : ""}>Active</option><option value="false" ${b.active ? "" : "selected"}>Inactive</option></select></label>
             </div>
