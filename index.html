@@ -682,12 +682,12 @@
 
     <script>
       // ======================== DATA STORES (Exactly same backend connections, untouched) ========================
-      // const API_URL = "https://mehfilbackend.onrender.com/api/admin";
+      const API_URL = "https://mehfilbackend.onrender.com/api/admin";
       // Poems whose author account was deleted come back with author: null.
       const authorFirst = (p) => (p && p.author && p.author.firstName) || "";
       const authorLast = (p) => (p && p.author && p.author.lastName) || "";
       const authorName = (p) => `${authorFirst(p)} ${authorLast(p)}`.trim() || "Deleted user";
-      const API_URL = "http://192.168.0.79:5000/api/admin";
+      // const API_URL = "http://192.168.0.79:5000/api/admin";
 
       let users = [];
       let poems = [];
