@@ -675,6 +675,7 @@
         >
         <a data-page="sher"><i class="fa-solid fa-feather-pointed"></i> आज का शेर</a>
         <a data-page="lafz"><i class="fa-solid fa-language"></i> आज का लफ़्ज़</a>
+        <a data-page="dictionary"><i class="fa-solid fa-book"></i> शब्दकोश</a>
         <a data-page="weeklyWriter"><i class="fa-solid fa-crown"></i> सप्ताह के रचनाकार</a>
         <a data-page="thursdayWriter"><i class="fa-solid fa-star"></i> गुरुवार का रचनाकार</a>
         <a data-page="selectedPoem"><i class="fa-solid fa-feather-pointed"></i> चयनित रचना</a>
@@ -2793,6 +2794,346 @@
         if (btn) openProgression(btn.getAttribute("data-id"));
       });
 
+      // ======================== DICTIONARY (शब्दकोश) MANAGEMENT ========================
+      // New section only. Uses the same admin token wrapper as every other page (all calls go to /api/admin/dictionary).
+      const DICT_API = `${API_URL}/dictionary`;
+      const dictState = { page: 1, q: "", status: "", total: 0, totalPages: 1, entries: [] };
+      const dcInput = "width:100%;padding:11px 14px;border:1px solid #e5d9cf;border-radius:12px;font-size:15px;box-sizing:border-box;font-family:inherit;";
+      const dcLabel = "display:block;font-weight:700;margin:14px 0 6px;color:#5c4032;font-size:14px;";
+      const dcHelp = "color:#8a7a70;font-size:12px;margin-top:4px;line-height:1.5;";
+      const dcLines = (text) => String(text || "").split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      const dcCommas = (text) => String(text || "").split(/[,\n،]/).map((s) => s.trim()).filter(Boolean);
+      const dcJoin = (arr) => (Array.isArray(arr) ? arr.join("\n") : "");
+
+      async function dictJson(url, options) {
+        const res = await fetch(url, options);
+        let data = {};
+        try { data = await res.json(); } catch (e) {}
+        return { ok: res.ok, status: res.status, data };
+      }
+
+      async function renderDictionaryPage() {
+        document.getElementById("mainPanel").innerHTML = `
+          <div class="page-header">
+            <div>
+              <h1>शब्दकोश · Dictionary</h1>
+              <p style="color:#7b6f67;margin-top:8px;">हिंदी, उर्दू, Roman और English में शब्द जोड़ें, संपादित करें और प्रकाशित करें।</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn-primary" id="dcNew"><i class="fa-solid fa-plus"></i> नया शब्द</button>
+              <button class="btn-primary" id="dcImportToggle" style="background:#7b5a47;"><i class="fa-solid fa-file-csv"></i> CSV Import</button>
+              <button class="btn-primary" id="dcExport" style="background:#7b5a47;"><i class="fa-solid fa-download"></i> CSV Export</button>
+            </div>
+          </div>
+          <div id="dcImportPanel" style="display:none;margin-bottom:24px;"></div>
+          <div class="glass-table" style="padding:20px;">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+              <input id="dcSearch" placeholder="शब्द खोजें (किसी भी लिपि में)…" value="${escapeAttr(dictState.q)}" style="${dcInput}flex:1;min-width:220px;width:auto;" />
+              <select id="dcStatus" style="${dcInput}width:auto;">
+                <option value="">सभी स्थिति</option>
+                <option value="published" ${dictState.status === "published" ? "selected" : ""}>Published</option>
+                <option value="draft" ${dictState.status === "draft" ? "selected" : ""}>Draft</option>
+              </select>
+            </div>
+            <div id="dcList" style="overflow-x:auto;"><p style="padding:20px;text-align:center;color:#8a7a70;">Loading…</p></div>
+            <div id="dcPager" style="display:flex;justify-content:center;align-items:center;gap:14px;margin-top:16px;"></div>
+          </div>`;
+
+        document.getElementById("dcNew").onclick = () => openDictionaryEditor(null);
+        document.getElementById("dcExport").onclick = exportDictionaryCsv;
+        document.getElementById("dcImportToggle").onclick = () => {
+          const p = document.getElementById("dcImportPanel");
+          p.style.display = p.style.display === "none" ? "block" : "none";
+          if (p.style.display === "block" && !p.innerHTML) renderDictionaryImportPanel();
+        };
+        let timer;
+        document.getElementById("dcSearch").addEventListener("input", (e) => {
+          clearTimeout(timer);
+          timer = setTimeout(() => { dictState.q = e.target.value.trim(); dictState.page = 1; loadDictionaryList(); }, 300);
+        });
+        document.getElementById("dcStatus").addEventListener("change", (e) => { dictState.status = e.target.value; dictState.page = 1; loadDictionaryList(); });
+        loadDictionaryList();
+      }
+
+      async function loadDictionaryList() {
+        const box = document.getElementById("dcList");
+        if (!box) return;
+        const qs = new URLSearchParams({ page: dictState.page, limit: 25 });
+        if (dictState.q) qs.set("q", dictState.q);
+        if (dictState.status) qs.set("status", dictState.status);
+        const { ok, data } = await dictJson(`${DICT_API}?${qs}`);
+        if (!ok || !data.success) { box.innerHTML = `<p style="padding:20px;color:#a34f38;">${escapeHtml(data.message || "Could not load the dictionary.")}</p>`; return; }
+        dictState.entries = data.entries; dictState.totalPages = data.totalPages; dictState.total = data.total;
+        box.innerHTML = data.entries.length
+          ? `<table style="width:100%;"><thead><tr><th>शब्द</th><th>Urdu</th><th>Roman</th><th>English</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>${data.entries.map((e) => `
+              <tr>
+                <td style="font-weight:700;font-size:17px;">${escapeHtml(e.canonicalWord)}${e.featured ? ' <i class="fa-solid fa-star" title="Featured" style="color:#c16a4b;font-size:12px;"></i>' : ""}<div style="font-weight:400;font-size:12px;color:#8a7a70;">/dictionary/${escapeHtml(e.slug)}</div></td>
+                <td dir="rtl" style="font-size:18px;">${escapeHtml((e.variants?.urdu || [])[0] || "")}</td>
+                <td>${escapeHtml((e.variants?.roman || []).slice(0, 2).join(", "))}</td>
+                <td>${escapeHtml((e.englishTranslations || []).slice(0, 3).map((t) => t.term).join(", "))}</td>
+                <td><span style="padding:4px 12px;border-radius:30px;font-size:12px;font-weight:700;${e.status === "published" ? "background:#e3f3e8;color:#2f7d4a;" : "background:#eee7e1;color:#6f5b4e;"}">${escapeHtml(e.status)}</span></td>
+                <td style="white-space:nowrap;">${formatDate(e.updatedAt)}</td>
+                <td style="white-space:nowrap;">
+                  <button class="btn-primary" style="padding:7px 14px;font-size:13px;" data-dc-edit="${escapeAttr(e._id)}"><i class="fa-solid fa-pen"></i> Edit</button>
+                  <button class="btn-primary" style="padding:7px 14px;font-size:13px;background:#7b5a47;" data-dc-toggle="${escapeAttr(e._id)}" data-status="${e.status === "published" ? "draft" : "published"}">${e.status === "published" ? "Unpublish" : "Publish"}</button>
+                  <button class="btn-primary" style="padding:7px 14px;font-size:13px;background:#a33a2f;" data-dc-del="${escapeAttr(e._id)}" data-word="${escapeAttr(e.canonicalWord)}"><i class="fa-solid fa-trash"></i></button>
+                </td>
+              </tr>`).join("")}</tbody></table>`
+          : `<p style="padding:30px;text-align:center;color:#8a7a70;">कोई शब्द नहीं मिला। “नया शब्द” से जोड़ें या CSV import करें।</p>`;
+        const pager = document.getElementById("dcPager");
+        pager.innerHTML = data.totalPages > 1
+          ? `<button class="btn-primary" id="dcPrev" ${dictState.page <= 1 ? "disabled style='opacity:.5'" : ""}>‹</button><span>Page ${dictState.page} / ${data.totalPages} · ${data.total} words</span><button class="btn-primary" id="dcNext" ${dictState.page >= data.totalPages ? "disabled style='opacity:.5'" : ""}>›</button>`
+          : `<span style="color:#8a7a70;">${data.total} word${data.total === 1 ? "" : "s"}</span>`;
+        const prev = document.getElementById("dcPrev"), next = document.getElementById("dcNext");
+        if (prev) prev.onclick = () => { if (dictState.page > 1) { dictState.page--; loadDictionaryList(); } };
+        if (next) next.onclick = () => { if (dictState.page < dictState.totalPages) { dictState.page++; loadDictionaryList(); } };
+        box.querySelectorAll("[data-dc-edit]").forEach((b) => (b.onclick = () => openDictionaryEditor(b.dataset.dcEdit)));
+        box.querySelectorAll("[data-dc-toggle]").forEach((b) => (b.onclick = async () => {
+          const r = await dictJson(`${DICT_API}/${b.dataset.dcToggle}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: b.dataset.status }) });
+          showToast(r.ok ? (b.dataset.status === "published" ? "Published" : "Unpublished") : escapeHtml(r.data.message || "Failed"));
+          loadDictionaryList();
+        }));
+        box.querySelectorAll("[data-dc-del]").forEach((b) => (b.onclick = async () => {
+          if (!confirm(`“${b.dataset.word}” को हमेशा के लिए हटाएँ?`)) return;
+          const r = await dictJson(`${DICT_API}/${b.dataset.dcDel}`, { method: "DELETE" });
+          showToast(r.ok ? "Deleted" : escapeHtml(r.data.message || "Failed"));
+          loadDictionaryList();
+        }));
+      }
+
+      // ---------- CSV import / export ----------
+      function renderDictionaryImportPanel() {
+        document.getElementById("dcImportPanel").innerHTML = `
+          <div class="glass-table" style="padding:22px;">
+            <h2 style="font-family:Georgia,serif;color:#5b3b2e;margin:0 0 6px;">CSV से शब्द import करें</h2>
+            <p style="${dcHelp}">UTF-8 CSV (Excel / Google Sheets से सेव की हुई)। पहले “Validate” चलाएँ — उससे कुछ भी save नहीं होता। Template: backend की <code>data/dictionary-template.csv</code>।</p>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:14px;">
+              <input type="file" id="dcFile" accept=".csv,text/csv" />
+              <select id="dcMode" style="${dcInput}width:auto;"><option value="create">नए शब्द जोड़ें (मौजूदा skip)</option><option value="upsert">मौजूदा को update करें</option></select>
+              <select id="dcDefStatus" style="${dcInput}width:auto;"><option value="draft">खाली status = Draft</option><option value="published">खाली status = Published</option></select>
+              <label style="font-size:14px;"><input type="checkbox" id="dcSkipInvalid" /> गलत rows छोड़कर बाकी import करें</label>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+              <button class="btn-primary" id="dcValidate" style="background:#7b5a47;"><i class="fa-solid fa-vial"></i> Validate (dry run)</button>
+              <button class="btn-primary" id="dcRunImport"><i class="fa-solid fa-upload"></i> Import</button>
+            </div>
+            <div id="dcImportReport" style="margin-top:16px;"></div>
+          </div>`;
+        const run = async (dryRun) => {
+          const file = document.getElementById("dcFile").files[0];
+          const out = document.getElementById("dcImportReport");
+          if (!file) { out.innerHTML = `<p style="color:#a34f38;">पहले CSV file चुनें।</p>`; return; }
+          if (!dryRun && !confirm("Import शुरू करें? (पहले Validate चलाना बेहतर है)")) return;
+          out.innerHTML = "Working…";
+          const text = await file.text(); // UTF-8, so Hindi / Urdu survive
+          const qs = new URLSearchParams({ mode: document.getElementById("dcMode").value, defaultStatus: document.getElementById("dcDefStatus").value });
+          if (dryRun) qs.set("dryRun", "1");
+          if (document.getElementById("dcSkipInvalid").checked) qs.set("skipInvalid", "1");
+          const { data } = await dictJson(`${DICT_API}/import?${qs}`, { method: "POST", headers: { "Content-Type": "text/csv" }, body: text });
+          if (!data.report) { out.innerHTML = `<p style="color:#a34f38;">${escapeHtml(data.message || "Import failed")}</p>`; return; }
+          renderImportReport(data.report);
+          if (!dryRun && data.report.written) loadDictionaryList();
+        };
+        document.getElementById("dcValidate").onclick = () => run(true);
+        document.getElementById("dcRunImport").onclick = () => run(false);
+      }
+
+      function renderImportReport(r) {
+        const t = r.totals;
+        const color = { create: "#2f7d4a", update: "#1f6aa5", "skip-existing": "#8a7a70", invalid: "#a33a2f" };
+        document.getElementById("dcImportReport").innerHTML = `
+          ${r.fileErrors.map((e) => `<p style="color:#a33a2f;font-weight:700;">${escapeHtml(e)}</p>`).join("")}
+          ${r.fileWarnings.map((e) => `<p style="color:#8a6a1f;">${escapeHtml(e)}</p>`).join("")}
+          <p style="font-weight:700;color:#5b3b2e;">${r.dryRun ? "DRY RUN — कुछ save नहीं हुआ. " : ""}Rows ${t.rows} · नए ${t.created} · updated ${t.updated} · skipped ${t.skippedExisting} · invalid ${t.invalid}${r.blocked ? " — import रोका गया (गलत rows ठीक करें)" : ""}</p>
+          ${t.drafts && !r.dryRun ? `<p style="${dcHelp}">${t.drafts} row(s) Draft के रूप में saved हैं; status “published” करने पर ही public दिखेंगे।</p>` : ""}
+          <div style="max-height:360px;overflow:auto;"><table style="width:100%;"><thead><tr><th>Row</th><th>शब्द</th><th>Result</th><th>Details</th></tr></thead><tbody>
+          ${r.rows.map((x) => `<tr><td>${x.row}</td><td>${escapeHtml(x.word)}</td><td style="color:${color[x.action] || "#333"};font-weight:700;">${escapeHtml(x.action)}</td><td style="font-size:13px;">${x.errors.map((e) => `<div style="color:#a33a2f;">✗ ${escapeHtml(e)}</div>`).join("")}${x.warnings.map((e) => `<div style="color:#8a6a1f;">! ${escapeHtml(e)}</div>`).join("")}</td></tr>`).join("")}
+          </tbody></table></div>`;
+      }
+
+      async function exportDictionaryCsv() {
+        const res = await fetch(`${DICT_API}/export`);
+        if (!res.ok) { showToast("Export failed"); return; }
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "mehfil-dictionary.csv";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
+
+      // ---------- editor ----------
+      function dcMeaningBlock(m = {}, i = 0) {
+        const ex = m.examples || [];
+        return `
+          <div class="dcMeaning" style="border:1px solid #eaded4;border-radius:16px;padding:16px;margin-top:14px;background:#fffaf6;">
+            <div style="display:flex;justify-content:space-between;align-items:center;"><strong style="color:#5b3b2e;">अर्थ #<span class="dcMNum">${i + 1}</span></strong><button type="button" class="dcMRemove" style="background:none;border:none;color:#a33a2f;cursor:pointer;font-weight:700;">✕ हटाएँ</button></div>
+            <label style="${dcLabel}">Part of speech</label><input class="dcMPos" value="${escapeAttr(m.partOfSpeech || "")}" placeholder="संज्ञा (Noun)" style="${dcInput}" />
+            <label style="${dcLabel}">हिंदी अर्थ</label><textarea class="dcMHindi" rows="2" style="${dcInput}">${escapeHtml(m.hindi || "")}</textarea>
+            <label style="${dcLabel}">اردو معنی</label><textarea class="dcMUrdu" rows="2" dir="rtl" style="${dcInput}">${escapeHtml(m.urdu || "")}</textarea>
+            <label style="${dcLabel}">English meaning</label><textarea class="dcMEnglish" rows="2" style="${dcInput}">${escapeHtml(m.english || "")}</textarea>
+            <label style="${dcLabel}">उदाहरण वाक्य (एक पंक्ति = एक वाक्य, अधिकतम 5)</label><textarea class="dcMEx" rows="3" style="${dcInput}">${escapeHtml(ex.map((x) => x.text).join("\n"))}</textarea>
+            <label style="${dcLabel}">उदाहरणों का अनुवाद (वही क्रम, वैकल्पिक)</label><textarea class="dcMExTr" rows="3" style="${dcInput}">${escapeHtml(ex.map((x) => x.translation || "").join("\n"))}</textarea>
+          </div>`;
+      }
+
+      async function openDictionaryEditor(id) {
+        let e = { status: "draft", language: "hi", variants: {}, meanings: [{}] };
+        if (id) {
+          const r = await dictJson(`${DICT_API}/${id}`);
+          if (!r.ok) { showToast(escapeHtml(r.data.message || "Could not load entry")); return; }
+          e = r.data.entry;
+          if (!e.meanings.length) e.meanings = [{}];
+        }
+        const v = e.variants || {};
+        const ta = (idv, label, value, help, extra = "") => `<label style="${dcLabel}">${label}</label><textarea id="${idv}" rows="3" ${extra} style="${dcInput}">${escapeHtml(dcJoin(value))}</textarea>${help ? `<div style="${dcHelp}">${help}</div>` : ""}`;
+        document.getElementById("mainPanel").innerHTML = `
+          <div class="page-header">
+            <div><h1>${id ? "शब्द संपादित करें" : "नया शब्द"}</h1><p style="color:#7b6f67;margin-top:8px;">${id ? `/dictionary/${escapeHtml(e.slug)} · ID ${escapeHtml(e.conceptId || "")}` : "Slug खाली छोड़ने पर अपने आप बन जाएगा।"}</p></div>
+            <button class="btn-primary" id="dcBack" style="background:#7b5a47;"><i class="fa-solid fa-arrow-left"></i> सूची पर लौटें</button>
+          </div>
+          <div class="glass-table" style="padding:26px;">
+            <div id="dcMsg" role="alert" style="margin-bottom:10px;"></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 20px;">
+              <div><label style="${dcLabel}">मुख्य शब्द (Canonical word) *</label><input id="dcWord" value="${escapeAttr(e.canonicalWord || "")}" maxlength="80" style="${dcInput}" /><div id="dcDup" style="${dcHelp}"></div></div>
+              <div><label style="${dcLabel}">भाषा / लिपि</label><select id="dcLang" style="${dcInput}"><option value="hi" ${e.language === "hi" ? "selected" : ""}>हिंदी (देवनागरी)</option><option value="ur" ${e.language === "ur" ? "selected" : ""}>اردو</option><option value="en" ${e.language === "en" ? "selected" : ""}>English</option></select></div>
+              <div><label style="${dcLabel}">Slug (URL)</label><input id="dcSlug" value="${escapeAttr(e.slug || "")}" maxlength="80" placeholder="intezaar" style="${dcInput}" /></div>
+              <div><label style="${dcLabel}">Status</label><select id="dcPub" style="${dcInput}"><option value="draft" ${e.status !== "published" ? "selected" : ""}>Draft</option><option value="published" ${e.status === "published" ? "selected" : ""}>Published</option></select></div>
+              <div><label style="${dcLabel}">उच्चारण</label><input id="dcPron" value="${escapeAttr(e.pronunciation || "")}" maxlength="80" placeholder="in-te-zaar" style="${dcInput}" /></div>
+              <div><label style="${dcLabel}">Part of speech (comma से अलग)</label><input id="dcPos" value="${escapeAttr((e.partOfSpeech || []).join(", "))}" style="${dcInput}" /></div>
+            </div>
+            <label style="margin-top:14px;display:inline-flex;gap:8px;align-items:center;font-weight:700;color:#5c4032;"><input type="checkbox" id="dcFeat" ${e.featured ? "checked" : ""} /> Featured (शब्दकोश के मुख पृष्ठ पर दिखाएँ)</label>
+
+            <h3 style="margin:26px 0 0;color:#9e4f36;font-family:Georgia,serif;">वर्तनी और अनुवाद</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 20px;">
+              <div>${ta("dcHindi", "हिंदी रूप (एक पंक्ति = एक रूप)", v.hindi, "")}</div>
+              <div>${ta("dcUrdu", "اردو (ہر سطر ایک شکل)", v.urdu, "", 'dir="rtl"')}</div>
+              <div>${ta("dcRoman", "Roman (एक पंक्ति = एक)", v.roman, "")}</div>
+              <div>${ta("dcAlias", "वैकल्पिक वर्तनी / आम गलतियाँ", v.aliases, "किसी भी लिपि में।")}</div>
+              <div>${ta("dcEng", "English translations", (e.englishTranslations || []).map((t) => (t.note ? `${t.term} (${t.note})` : t.term)), "संदर्भ कोष्ठक में लिखें, जैसे: wait (noun)। हर अनुवाद एक ही अर्थ का नहीं होता — संदर्भ ज़रूर लिखें।")}</div>
+            </div>
+
+            <h3 style="margin:26px 0 0;color:#9e4f36;font-family:Georgia,serif;">अर्थ (अधिकतम 10)</h3>
+            <div id="dcMeanings">${(e.meanings || []).map((m, i) => dcMeaningBlock(m, i)).join("")}</div>
+            <button type="button" class="btn-primary" id="dcAddMeaning" style="margin-top:14px;background:#7b5a47;"><i class="fa-solid fa-plus"></i> और अर्थ जोड़ें</button>
+
+            <h3 style="margin:26px 0 0;color:#9e4f36;font-family:Georgia,serif;">संबंधित शब्द</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 20px;">
+              <div>${ta("dcSyn", "पर्यायवाची", e.synonyms, "")}</div>
+              <div>${ta("dcAnt", "विलोम", e.antonyms, "")}</div>
+              <div>${ta("dcRel", "संबंधित शब्द", e.relatedWords, "जिस शब्द का प्रकाशित पन्ना होगा, वह अपने आप link बन जाएगा।")}</div>
+            </div>
+            ${ta("dcLit", "साहित्यिक उदाहरण (एक पंक्ति: पाठ :: रचनाकार :: स्रोत)", (e.literaryExamples || []).map((x) => [x.text, x.author, x.source].filter((s, i) => s || i === 0).join(" :: ")), "केवल सत्यापित उद्धरण लिखें।")}
+            <label style="${dcLabel}">शब्द की उत्पत्ति (केवल सत्यापित हो तो)</label><textarea id="dcEty" rows="2" style="${dcInput}">${escapeHtml(e.etymology || "")}</textarea>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 20px;">
+              <div><label style="${dcLabel}">Tags (comma से अलग)</label><input id="dcTags" value="${escapeAttr((e.tags || []).join(", "))}" style="${dcInput}" /></div>
+              <div><label style="${dcLabel}">Categories (comma से अलग)</label><input id="dcCats" value="${escapeAttr((e.categories || []).join(", "))}" style="${dcInput}" /></div>
+            </div>
+
+            <h3 style="margin:26px 0 0;color:#9e4f36;font-family:Georgia,serif;">SEO</h3>
+            <label style="${dcLabel}">SEO title <span id="dcTitleCount" style="font-weight:400;color:#8a7a70;"></span></label><input id="dcSeoT" value="${escapeAttr(e.seoTitle || "")}" maxlength="120" placeholder="खाली छोड़ें — शब्द से अपने आप बनेगा" style="${dcInput}" />
+            <label style="${dcLabel}">SEO description <span id="dcDescCount" style="font-weight:400;color:#8a7a70;"></span></label><textarea id="dcSeoD" rows="2" maxlength="300" placeholder="खाली छोड़ें — अर्थ से अपने आप बनेगा" style="${dcInput}">${escapeHtml(e.seoDescription || "")}</textarea>
+
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;">
+              <button class="btn-primary" id="dcSave"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+              <button class="btn-primary" id="dcPreviewBtn" style="background:#7b5a47;"><i class="fa-solid fa-eye"></i> Preview</button>
+            </div>
+            <div id="dcPreview" style="margin-top:22px;"></div>
+          </div>`;
+
+        const $ = (x) => document.getElementById(x);
+        $("dcBack").onclick = renderDictionaryPage;
+        const renumber = () => document.querySelectorAll(".dcMNum").forEach((n, i) => (n.textContent = i + 1));
+        const wireMeaning = (root) => { root.querySelector(".dcMRemove").onclick = () => { root.remove(); renumber(); }; };
+        document.querySelectorAll(".dcMeaning").forEach(wireMeaning);
+        $("dcAddMeaning").onclick = () => {
+          if (document.querySelectorAll(".dcMeaning").length >= 10) { showToast("अधिकतम 10 अर्थ"); return; }
+          const wrap = document.createElement("div");
+          wrap.innerHTML = dcMeaningBlock({}, document.querySelectorAll(".dcMeaning").length);
+          const node = wrap.firstElementChild; $("dcMeanings").appendChild(node); wireMeaning(node);
+        };
+        const counters = () => {
+          $("dcTitleCount").textContent = `(${$("dcSeoT").value.length}/65 अनुशंसित)`;
+          $("dcDescCount").textContent = `(${$("dcSeoD").value.length}/160 अनुशंसित)`;
+        };
+        $("dcSeoT").addEventListener("input", counters); $("dcSeoD").addEventListener("input", counters); counters();
+
+        // Duplicate hint while typing the canonical word.
+        let dupTimer;
+        const checkDup = () => {
+          clearTimeout(dupTimer);
+          dupTimer = setTimeout(async () => {
+            const w = $("dcWord").value.trim(); const box = $("dcDup");
+            if (!w) { box.innerHTML = ""; return; }
+            const qs = new URLSearchParams({ word: w, language: $("dcLang").value }); if (id) qs.set("excludeId", id);
+            const { data } = await dictJson(`${DICT_API}/check?${qs}`);
+            if (data.duplicate) box.innerHTML = `<span style="color:#a33a2f;font-weight:700;">⚠ यह शब्द पहले से मौजूद है: ${escapeHtml(data.duplicate.canonicalWord)} (/dictionary/${escapeHtml(data.duplicate.slug)}) — नया पन्ना नहीं बनेगा।</span>`;
+            else if ((data.similar || []).length) box.innerHTML = `<span style="color:#8a6a1f;">ध्यान दें: यह शब्द पहले से इन प्रविष्टियों की वर्तनी में है: ${data.similar.map((s) => escapeHtml(s.canonicalWord)).join(", ")}</span>`;
+            else box.innerHTML = `<span style="color:#2f7d4a;">✓ नया शब्द</span>`;
+          }, 350);
+        };
+        $("dcWord").addEventListener("input", checkDup); $("dcLang").addEventListener("change", checkDup);
+
+        const collect = () => ({
+          canonicalWord: $("dcWord").value.trim(),
+          language: $("dcLang").value,
+          ...($("dcSlug").value.trim() ? { slug: $("dcSlug").value.trim() } : {}),
+          status: $("dcPub").value,
+          featured: $("dcFeat").checked,
+          pronunciation: $("dcPron").value.trim(),
+          partOfSpeech: dcCommas($("dcPos").value),
+          variants: { hindi: dcLines($("dcHindi").value), urdu: dcLines($("dcUrdu").value), roman: dcLines($("dcRoman").value), aliases: dcLines($("dcAlias").value) },
+          englishTranslations: dcLines($("dcEng").value),
+          meanings: [...document.querySelectorAll(".dcMeaning")].map((n) => {
+            const ex = dcLines(n.querySelector(".dcMEx").value); const tr = String(n.querySelector(".dcMExTr").value).split(/\r?\n/).map((s) => s.trim());
+            return { partOfSpeech: n.querySelector(".dcMPos").value.trim(), hindi: n.querySelector(".dcMHindi").value.trim(), urdu: n.querySelector(".dcMUrdu").value.trim(), english: n.querySelector(".dcMEnglish").value.trim(), examples: ex.map((text, i) => ({ text, translation: tr[i] || "" })) };
+          }),
+          synonyms: dcLines($("dcSyn").value), antonyms: dcLines($("dcAnt").value), relatedWords: dcLines($("dcRel").value),
+          literaryExamples: dcLines($("dcLit").value).map((l) => { const [text, author, source] = l.split("::").map((s) => s.trim()); return { text: text || "", author: author || "", source: source || "" }; }),
+          etymology: $("dcEty").value.trim(), tags: dcCommas($("dcTags").value), categories: dcCommas($("dcCats").value),
+          seoTitle: $("dcSeoT").value.trim(), seoDescription: $("dcSeoD").value.trim(),
+        });
+
+        $("dcPreviewBtn").onclick = () => {
+          const d = collect(); const chips = (a, cls = "") => (a || []).map((x) => `<span style="display:inline-block;margin:3px 6px 3px 0;padding:4px 12px;border-radius:30px;background:#f6ece3;color:#9e4f36;${cls}">${escapeHtml(x)}</span>`).join("");
+          $("dcPreview").innerHTML = `
+            <div style="border:2px dashed #d8b9aa;border-radius:20px;padding:22px;background:#fffdf8;">
+              <div style="color:#8a7a70;font-size:12px;margin-bottom:8px;">PREVIEW — public पन्ने जैसा (Status: ${escapeHtml(d.status)})</div>
+              <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;">
+                <div style="font-size:44px;font-weight:700;color:#5a321c;font-family:'Noto Serif Devanagari',serif;">${escapeHtml(d.canonicalWord || "—")}</div>
+                <div dir="rtl" style="font-size:38px;color:#9e4f36;">${escapeHtml((d.variants.urdu || [])[0] || "")}</div>
+              </div>
+              <div>${chips((d.englishTranslations || []).map((t) => t), "font-family:sans-serif;")}</div>
+              ${d.pronunciation ? `<div style="color:#7b6f67;margin-top:6px;">उच्चारण: ${escapeHtml(d.pronunciation)}</div>` : ""}
+              ${d.meanings.map((m, i) => `<div style="margin-top:16px;"><b>${i + 1}.</b> ${escapeHtml(m.hindi || m.english || m.urdu || "")} <i style="color:#8a7a70;">${escapeHtml(m.partOfSpeech)}</i>${m.hindi && m.english ? `<div style="color:#5c4a3f;">${escapeHtml(m.english)}</div>` : ""}${m.hindi && m.urdu ? `<div dir="rtl" style="color:#5c4a3f;">${escapeHtml(m.urdu)}</div>` : ""}${m.examples.map((x) => `<div style="margin:8px 0 0;padding:6px 12px;border-left:3px solid #e8c8ba;">${escapeHtml(x.text)}${x.translation ? `<div style="color:#8a7a70;font-size:13px;">${escapeHtml(x.translation)}</div>` : ""}</div>`).join("")}</div>`).join("")}
+              ${d.synonyms.length ? `<div style="margin-top:16px;"><b>पर्यायवाची:</b> ${chips(d.synonyms)}</div>` : ""}
+              ${d.antonyms.length ? `<div style="margin-top:8px;"><b>विलोम:</b> ${chips(d.antonyms)}</div>` : ""}
+              ${d.relatedWords.length ? `<div style="margin-top:8px;"><b>संबंधित:</b> ${chips(d.relatedWords)}</div>` : ""}
+              <div style="margin-top:18px;padding-top:12px;border-top:1px dashed #e5d9cf;color:#7b6f67;font-size:13px;"><b>Google title:</b> ${escapeHtml(d.seoTitle || `${d.canonicalWord} का अर्थ${d.variants.urdu.length ? ", Urdu Meaning" : ""}${d.englishTranslations.length ? (d.variants.urdu.length ? " & " : ", ") + "English Translation" : ""}`)} | Mehfil</div>
+            </div>`;
+          $("dcPreview").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        };
+
+        $("dcSave").onclick = async () => {
+          const btn = $("dcSave"); const msg = $("dcMsg"); btn.disabled = true; msg.innerHTML = "";
+          const payload = collect();
+          if (id && !payload.slug) delete payload.slug;
+          const r = await dictJson(id ? `${DICT_API}/${id}` : DICT_API, { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+          btn.disabled = false;
+          if (!r.ok) {
+            const list = r.data.errors && r.data.errors.length > 1 ? `<ul style="margin:6px 0 0 18px;">${r.data.errors.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : "";
+            msg.innerHTML = `<div style="background:#fdecea;color:#a33a2f;padding:12px 16px;border-radius:12px;font-weight:600;">${escapeHtml(r.data.message || "Save failed")}${list}</div>`;
+            msg.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            return;
+          }
+          showToast(id ? "Saved" : "Created");
+          const saved = r.data.entry;
+          await openDictionaryEditor(saved._id);
+          const notes = [...(r.data.warnings || []), ...((r.data.similar || []).map((s) => `ध्यान दें: यह शब्द “${s.canonicalWord}” की वर्तनी में भी है।`))];
+          if (notes.length) document.getElementById("dcMsg").innerHTML = `<div style="background:#fff7e0;color:#7a5200;padding:12px 16px;border-radius:12px;">${notes.map((n) => `<div>${escapeHtml(n)}</div>`).join("")}</div>`;
+        };
+      }
+
       let currentPage = "dashboard";
       function loadPage(page) {
         currentPage = page;
@@ -2800,6 +3141,7 @@
         else if (page === "poems") renderPoems();
         else if (page === "sher") renderSherPage();
         else if (page === "lafz") renderLafzPage();
+        else if (page === "dictionary") renderDictionaryPage();
         else if (page === "weeklyWriter") renderWeeklyWriterPage();
         else if (page === "thursdayWriter") renderThursdayWriterPage();
         else if (page === "selectedPoem") renderSelectedPoemPage();
