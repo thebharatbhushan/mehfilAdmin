@@ -639,10 +639,34 @@
       .prog-pos { color: #3f7a52; font-weight: 800; } .prog-neg { color: #b3261e; font-weight: 800; }
       .prog-table-wrap { overflow-x: auto; }
       @media (max-width: 700px) { .prog-adjust { grid-template-columns: 1fr; } .modal-container:has(.admin-prog) { max-width: none; } }
+
+      /* ===== Admin login gate ===== */
+      #adminLogin { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: linear-gradient(135deg, #fff7f1, #f3e3d6); }
+      #adminLogin .login-card { width: 100%; max-width: 380px; background: #fff; border-radius: 20px; padding: 32px 28px; box-shadow: 0 20px 50px rgba(120, 70, 40, .18); }
+      #adminLogin h2 { margin: 0 0 6px; color: #5b3b2e; font-size: 22px; }
+      #adminLogin p { margin: 0 0 20px; color: #8a7466; font-size: 14px; }
+      #adminLogin label { display: block; font-size: 13px; color: #6f5b4e; margin: 12px 0 6px; }
+      #adminLogin input { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid #e5d9cf; border-radius: 12px; font-size: 15px; }
+      #adminLogin button { width: 100%; margin-top: 20px; padding: 13px; border: 0; border-radius: 12px; background: #c16a4b; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+      #adminLogin button:disabled { opacity: .6; cursor: wait; }
+      #adminLoginError { color: #b3261e; font-size: 13px; margin-top: 12px; min-height: 18px; }
+      body.admin-locked .sidebar, body.admin-locked .main-panel { visibility: hidden; }
     </style>
   </head>
 
-  <body>
+  <body class="admin-locked">
+    <div id="adminLogin">
+      <form class="login-card" id="adminLoginForm" autocomplete="on">
+        <h2><i class="fa-solid fa-mosque"></i> Mehfil Admin</h2>
+        <p>Sign in to continue. Only authorised admins can open this panel.</p>
+        <label for="adminEmail">Admin email</label>
+        <input id="adminEmail" type="email" autocomplete="username" required />
+        <label for="adminPassword">Password</label>
+        <input id="adminPassword" type="password" autocomplete="current-password" required />
+        <button type="submit" id="adminLoginBtn">Sign in</button>
+        <div id="adminLoginError" role="alert"></div>
+      </form>
+    </div>
     <div class="sidebar">
       <div class="logo"><i class="fa-solid fa-mosque"></i> Mehfil</div>
       <div class="menu" id="navMenu">
@@ -660,6 +684,7 @@
         <a data-page="feedback"><i class="fa-solid fa-comment-dots"></i> Feedback</a>
         <a data-page="contact"><i class="fa-solid fa-envelope"></i> Contact Messages</a>
         <a data-page="settings"><i class="fa-solid fa-gear"></i> Settings</a>
+        <a onclick="adminLogout()" style="cursor:pointer"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
       </div>
     </div>
 
@@ -684,6 +709,36 @@
     <script>
       // ======================== DATA STORES (Exactly same backend connections, untouched) ========================
       const API_URL = "https://mehfilbackend.onrender.com/api/admin";
+
+      // ======================== ADMIN AUTH (token from POST /api/admin/login) ========================
+      const ADMIN_TOKEN_KEY = "mehfilAdminToken";
+      const getAdminToken = () => { try { return sessionStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch { return ""; } };
+      const setAdminToken = (t) => { try { t ? sessionStorage.setItem(ADMIN_TOKEN_KEY, t) : sessionStorage.removeItem(ADMIN_TOKEN_KEY); } catch {} };
+
+      function showAdminLogin(message) {
+        setAdminToken("");
+        document.body.classList.add("admin-locked");
+        document.getElementById("adminLogin").style.display = "flex";
+        document.getElementById("adminLoginError").textContent = message || "";
+      }
+      function hideAdminLogin() {
+        document.body.classList.remove("admin-locked");
+        document.getElementById("adminLogin").style.display = "none";
+      }
+      function adminLogout() { showAdminLogin(""); location.reload(); }
+
+      // Every request to the admin API carries the admin token; a 401 sends the admin back to the login screen.
+      const _nativeFetch = window.fetch.bind(window);
+      window.fetch = async (input, init = {}) => {
+        const url = typeof input === "string" ? input : (input && input.url) || "";
+        if (!url.startsWith(API_URL) || url.startsWith(`${API_URL}/login`)) return _nativeFetch(input, init);
+        const headers = new Headers(init.headers || (typeof input !== "string" ? input.headers : undefined) || {});
+        const token = getAdminToken();
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+        const response = await _nativeFetch(input, { ...init, headers });
+        if (response.status === 401) showAdminLogin("Session expired. Please sign in again.");
+        return response;
+      };
       // Poems whose author account was deleted come back with author: null.
       const authorFirst = (p) => (p && p.author && p.author.firstName) || "";
       const authorLast = (p) => (p && p.author && p.author.lastName) || "";
@@ -2760,11 +2815,49 @@
         });
       }
 
-      (async () => {
+      async function startAdminPanel() {
         await loadUsers();
         await loadPoems();
         loadPage("dashboard");
+      }
+
+      // Nothing loads until the server confirms a valid admin token.
+      (async () => {
+        if (getAdminToken()) {
+          try {
+            const res = await fetch(`${API_URL}/verify`);
+            if (res.ok) { hideAdminLogin(); return startAdminPanel(); }
+          } catch (e) {
+            return showAdminLogin("Could not reach the server. Please try again.");
+          }
+        }
+        showAdminLogin("");
       })();
+
+      document.getElementById("adminLoginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("adminLoginBtn");
+        const errBox = document.getElementById("adminLoginError");
+        btn.disabled = true; errBox.textContent = "";
+        try {
+          const res = await fetch(`${API_URL}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: document.getElementById("adminEmail").value,
+              password: document.getElementById("adminPassword").value,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.token) { errBox.textContent = data.message || "Login failed."; return; }
+          setAdminToken(data.token);
+          document.getElementById("adminPassword").value = "";
+          hideAdminLogin();
+          startAdminPanel();
+        } catch (err) {
+          errBox.textContent = "Could not reach the server. Please try again.";
+        } finally { btn.disabled = false; }
+      });
 
       document.querySelectorAll(".menu a").forEach((link) => {
         link.addEventListener("click", (e) => {
