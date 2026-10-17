@@ -739,13 +739,24 @@
         }
       }
 
+      // The poems API is paginated (max 100 per request); gather every page in small requests.
+      async function fetchAllPoemsPaged() {
+        const all = [];
+        let page = 1, totalPages = 1;
+        do {
+          const res = await fetch(`${API_URL}/poems?page=${page}&limit=100`);
+          const data = await res.json();
+          if (!data.success || !Array.isArray(data.poems)) break;
+          all.push(...data.poems);
+          totalPages = data.totalPages || 1;
+          page++;
+        } while (page <= totalPages);
+        return all;
+      }
+
       async function loadPoems() {
         try {
-          const response = await fetch(`${API_URL}/poems`);
-          const data = await response.json();
-          if (data.success) {
-            poems = data.poems;
-          }
+          poems = await fetchAllPoemsPaged();
         } catch (error) {
           console.log(error);
         }
@@ -1910,9 +1921,7 @@
 
         let poemsForSher = [];
         try {
-          const poemRes = await fetch(`${API_URL}/poems`);
-          const poemData = await poemRes.json();
-          poemsForSher = poemData.success && Array.isArray(poemData.poems) ? poemData.poems : [];
+          poemsForSher = await fetchAllPoemsPaged();
         } catch (error) {
           console.error(error);
         }
