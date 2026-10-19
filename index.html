@@ -8,7 +8,9 @@
     />
     <title>Mehfil Admin | Complete Management Suite</title>
     <meta name="theme-color" content="#101827" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='mfTile' x1='4' y1='0' x2='44' y2='48' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%233B34B8'/%3E%3Cstop offset='1' stop-color='%23101827'/%3E%3C/linearGradient%3E %3ClinearGradient id='mfGold' x1='12' y1='8' x2='36' y2='38' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23EBD39B'/%3E%3Cstop offset='1' stop-color='%23C9A05A'/%3E%3C/linearGradient%3E%3C/defs%3E %3Crect width='48' height='48' rx='13' fill='url(%23mfTile)'/%3E %3Crect x='.5' y='.5' width='47' height='47' rx='12.5' fill='none' stroke='%23fff' stroke-opacity='.14'/%3E %3Cpath d='M11.5 38V25.5C11.5 17.5 18 12.5 24 7.5C30 12.5 36.5 17.5 36.5 25.5V38' fill='none' stroke='url(%23mfGold)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E %3Cpath d='M17.5 36V23.5L24 30.5L30.5 23.5V36' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E %3Ccircle cx='24' cy='17' r='2.2' fill='url(%23mfGold)'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="logo.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -193,10 +195,12 @@
       }
 
       .logo-mark {
-        width: 40px;
-        height: 40px;
-        flex: 0 0 40px;
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
         display: block;
+        object-fit: contain;
+        border-radius: 12px;
         filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
       }
 
@@ -2260,9 +2264,9 @@
         margin-bottom: 24px;
       }
       .login-brand .logo-mark {
-        width: 52px;
-        height: 52px;
-        flex-basis: 52px;
+        width: 60px;
+        height: 60px;
+        flex-basis: 60px;
         filter: none;
       }
       .login-brand .logo-word {
@@ -2527,7 +2531,7 @@
 </svg>
     <div id="adminLogin">
       <form class="login-card" id="adminLoginForm" autocomplete="on">
-        <div class="login-brand"><svg class="logo-mark" aria-hidden="true" focusable="false"><use href="#mehfil-mark"/></svg><span class="logo-text"><span class="logo-word">Mehfil</span><span class="logo-sub">Admin</span></span></div>
+        <div class="login-brand"><img class="logo-mark" src="logo.png" alt="Mehfil Admin logo" width="48" height="48" /><span class="logo-text"><span class="logo-word">Mehfil</span><span class="logo-sub">Admin</span></span></div>
         <h2>Sign in</h2>
         <p>Sign in to continue. Only authorised admins can open this panel.</p>
         <label for="adminEmail">Admin email</label>
@@ -2541,7 +2545,7 @@
 
     <div class="app-shell">
       <aside class="sidebar" id="sidebar" aria-label="Main navigation">
-        <div class="sidebar-brand"><div class="logo"><svg class="logo-mark" aria-hidden="true" focusable="false"><use href="#mehfil-mark"/></svg><span class="logo-text"><span class="logo-word">Mehfil</span><span class="logo-sub">Admin</span></span></div></div>
+        <div class="sidebar-brand"><div class="logo"><img class="logo-mark" src="logo.png" alt="Mehfil Admin logo" width="48" height="48" /><span class="logo-text"><span class="logo-word">Mehfil</span><span class="logo-sub">Admin</span></span></div></div>
         <nav class="menu" id="navMenu">
         <div class="menu-label">Overview</div>
         <a data-page="dashboard" href="#dashboard" data-tip="Dashboard" data-group="Overview"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i><span class="nav-label">Dashboard</span></a>
