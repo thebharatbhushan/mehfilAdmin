@@ -2896,7 +2896,8 @@
         box.querySelectorAll("[data-dc-del]").forEach((b) => (b.onclick = async () => {
           if (!confirm(`“${b.dataset.word}” को हमेशा के लिए हटाएँ?`)) return;
           const r = await dictJson(`${DICT_API}/${b.dataset.dcDel}`, { method: "DELETE" });
-          showToast(r.ok ? "Deleted" : escapeHtml(r.data.message || "Failed"));
+          if (!r.ok) { alert(`Delete failed (HTTP ${r.status}): ${r.data.message || "no response from server"}`); return; }
+          showToast("Deleted");
           loadDictionaryList();
         }));
       }
