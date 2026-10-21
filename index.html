@@ -1329,13 +1329,13 @@
 
       /* ---------- poem status select colours ---------- */
       .status-select-enhanced { appearance: auto; font-weight: 700 !important; }
-      .status-select-enhanced[data-status="Approved"] { background: #e6f6ec !important; color: #0a7a3d !important; border-color: #3fb97a !important; }
-      .status-select-enhanced[data-status="Pending"]  { background: #fff6cf !important; color: #8a6100 !important; border-color: #f5b301 !important; }
-      .status-select-enhanced[data-status="Rejected"] { background: #fdeaea !important; color: #c0261d !important; border-color: #e5645b !important; }
+      .status-select-enhanced[data-status="published"], .status-select-enhanced[data-status="Approved"] { background: #e6f6ec !important; color: #0a7a3d !important; border-color: #3fb97a !important; }
+      .status-select-enhanced[data-status="unpublished"], .status-select-enhanced[data-status="Pending"]  { background: #fff6cf !important; color: #8a6100 !important; border-color: #f5b301 !important; }
+      .status-select-enhanced[data-status="rejected"], .status-select-enhanced[data-status="Rejected"] { background: #fdeaea !important; color: #c0261d !important; border-color: #e5645b !important; }
       .status-select-enhanced option { font-weight: 700; }
-      .status-select-enhanced option[value="Approved"] { background: #e6f6ec; color: #0a7a3d; }
-      .status-select-enhanced option[value="Pending"]  { background: #fff6cf; color: #8a6100; }
-      .status-select-enhanced option[value="Rejected"] { background: #fdeaea; color: #c0261d; }
+      .status-select-enhanced option[value="published"] { background: #e6f6ec; color: #0a7a3d; }
+      .status-select-enhanced option[value="unpublished"]  { background: #fff6cf; color: #8a6100; }
+      .status-select-enhanced option[value="rejected"] { background: #fdeaea; color: #c0261d; }
 
       /* ---------- global loader ---------- */
       .app-loader-bar {
@@ -2512,6 +2512,88 @@
           transition-duration: 0.01ms !important;
         }
       }
+      /* ---- Mehfil Spotlight popup (shared look: website + admin preview) ---- *//* ---- Mehfil Spotlight popup (shared look: website + admin preview) ---- */
+      .sp-overlay{position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(44,36,31,.58);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);overscroll-behavior:contain;animation:sp-fade .22s ease both}
+      .sp-card{position:relative;width:100%;max-width:440px;max-height:calc(var(--sp-vh,100dvh) - 32px);border-radius:22px;overflow:hidden;background:#fffdf8;color:#4a3f38;box-shadow:0 24px 70px rgba(44,36,31,.35);background-size:cover;background-position:center;animation:sp-pop .26s cubic-bezier(.2,.8,.2,1) both}
+      .sp-scroll{max-height:calc(var(--sp-vh,100dvh) - 32px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+      .sp-card--image{width:fit-content;max-width:min(560px,100%)}
+      .sp-close{position:absolute;top:10px;right:10px;z-index:3;width:40px;height:40px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;font:400 22px/1 system-ui,sans-serif;background:rgba(255,255,255,.95);color:#2c241f;box-shadow:0 2px 10px rgba(0,0,0,.28)}
+      .sp-close--light{background:rgba(20,16,14,.68);color:#fff}
+      .sp-close:hover{filter:brightness(.95)}
+      .sp-close:focus-visible,.sp-btn:focus-visible,.sp-imglink:focus-visible{outline:3px solid #c16a4b;outline-offset:2px}
+      .sp-imglink{display:block;line-height:0}
+      .sp-img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(var(--sp-vh,100dvh) - 32px)}
+      .sp-card--image.sp-has-bar .sp-img{max-height:calc(var(--sp-vh,100dvh) - 112px)}
+      .sp-bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:12px 16px;background:#fffdf8}
+      .sp-media{display:block;width:100%;height:auto;max-height:min(calc(var(--sp-vh,100dvh) * .46),360px);object-fit:contain;background:rgba(0,0,0,.04)}
+      .sp-body{padding:26px 24px 24px;text-align:center}
+      .sp-title{margin:0 0 10px;font-family:var(--font-display,Georgia,'Noto Serif Devanagari',serif);font-size:clamp(1.35rem,4.6vw,1.75rem);line-height:1.3;font-weight:700;color:#9e4f36;overflow-wrap:anywhere;padding-inline:26px}
+      .sp-text{margin:0 0 18px;font-size:1rem;line-height:1.7;white-space:pre-line;overflow-wrap:anywhere}
+      .sp-title:last-child,.sp-text:last-child{margin-bottom:0}
+      .sp-hl{color:var(--sp-accent,#c16a4b);font-weight:700;background:none;box-shadow:inset 0 -.4em 0 color-mix(in srgb,var(--sp-accent,#c16a4b) 20%,transparent)}
+      .sp-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+      .sp-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 22px;border-radius:999px;font-weight:700;font-size:.95rem;line-height:1.2;font-family:inherit;text-decoration:none;cursor:pointer;border:2px solid var(--sp-cta,#c16a4b);transition:transform .15s ease,filter .15s ease}
+      .sp-btn--primary{background:var(--sp-cta,#c16a4b);color:var(--sp-cta-text,#fff)}
+      .sp-btn--secondary{background:transparent;color:var(--sp-cta,#c16a4b)}
+      .sp-btn:hover{transform:translateY(-1px);filter:brightness(.96)}
+      @keyframes sp-fade{from{opacity:0}to{opacity:1}}
+      @keyframes sp-pop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+      @media (prefers-reduced-motion:reduce){.sp-overlay,.sp-card{animation:none}.sp-btn{transition:none}.sp-btn:hover{transform:none}}
+      @media (max-width:480px){.sp-overlay{padding:12px}.sp-body{padding:22px 18px 20px}}
+      /* ---- Spotlight popups (admin, restyled) ---- */
+      .sp-wrap .sp-head-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+      .sp-switch{display:inline-flex;align-items:center;gap:10px;font-weight:600;color:var(--text);cursor:pointer}
+      .sp-switch input{appearance:none;-webkit-appearance:none;width:46px;height:26px;border-radius:99px;background:var(--border-strong);position:relative;cursor:pointer;transition:.2s;margin:0;padding:0;border:0}
+      .sp-switch input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+      .sp-switch input:checked{background:var(--success)}
+      .sp-switch input:checked::after{left:23px}
+      .sp-thumb{width:46px;height:46px;border-radius:12px;object-fit:cover;background:var(--surface-3);border:1px solid var(--border);flex:0 0 auto}
+      .sp-name{display:flex;gap:12px;align-items:center;min-width:220px}
+      .sp-name b{display:block}
+      .sp-state-live{background:var(--success-bg);color:var(--success)}.sp-state-scheduled{background:var(--info-bg);color:var(--info)}.sp-state-paused{background:var(--warning-bg);color:var(--warning)}.sp-state-expired{background:#eee;color:#666}.sp-state-draft{background:#f4e8ff;color:#7b00d6}
+      .sp-editor{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:22px;align-items:start}
+      @media (max-width:1100px){.sp-editor{grid-template-columns:1fr}}
+      .sp-form input[type=text],.sp-form input[type=url],.sp-form input[type=number],.sp-form input[type=datetime-local],.sp-form select,.sp-form textarea{width:100%;padding:11px 13px;border:1px solid var(--border);background:#fff;border-radius:13px;font-size:.95rem;outline:none;font-family:inherit}
+      .sp-form input:focus,.sp-form select:focus,.sp-form textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(81,70,229,.18)}
+      .sp-form textarea{resize:vertical;min-height:84px}
+      .sp-form .nf-l{margin-top:12px}
+      .sp-form .nf-l:first-child{margin-top:0}
+      .sp-check{display:flex;gap:9px;align-items:flex-start;font-size:.9rem;color:var(--text);margin-top:12px;cursor:pointer}
+      .sp-check input{margin-top:3px}
+      .sp-mode{display:flex;gap:10px;flex-wrap:wrap}
+      .sp-mode label{flex:1 1 200px;border:2px solid var(--border);border-radius:16px;padding:12px 14px;cursor:pointer;background:#fff}
+      .sp-mode label:has(input:checked){border-color:var(--primary);background:var(--primary-50)}
+      .sp-mode b{display:block;color:var(--primary-700)}
+      .sp-color{display:flex;align-items:center;gap:8px}
+      .sp-color input[type=color]{width:46px;height:38px;padding:2px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer}
+      .sp-reset,.sp-chip{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:99px;padding:5px 11px;font-size:.78rem;cursor:pointer}
+      .sp-chip:hover,.sp-reset:hover{background:var(--primary-50)}
+      .sp-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+      .sp-up{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+      .sp-up img{width:84px;height:84px;object-fit:contain;border-radius:12px;background:var(--surface-3);border:1px solid var(--border)}
+      .sp-up-empty{width:84px;height:84px;border-radius:12px;border:2px dashed var(--border-strong);display:grid;place-items:center;color:var(--text-2);font-size:22px}
+      .sp-up-meta{font-size:.78rem;color:var(--text-2);margin-top:4px}
+      .sp-preview-col{position:sticky;top:18px}
+      .sp-preview-tools{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+      .sp-stage{--sp-vh:560px;position:relative;height:560px;overflow:hidden;border-radius:20px;border:1px solid var(--border);margin:0 auto;transition:width .2s;background:repeating-linear-gradient(135deg,var(--surface-2) 0 14px,var(--surface-3) 14px 28px)}
+      .sp-stage .sp-overlay{position:absolute}
+      .sp-msg{border-radius:12px;padding:12px 16px;font-weight:600;margin-top:14px}
+      .sp-msg.err{background:#fdecea;color:var(--danger)}.sp-msg.ok{background:var(--success-bg);color:var(--success)}
+      .sp-footer{position:sticky;bottom:0;background:rgba(246,247,251,.96);backdrop-filter:blur(6px);padding:14px 0;margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--border);z-index:5}
+      .sp-btn-ghost{background:#fff;border:1px solid var(--border);color:var(--text);padding:12px 22px;border-radius:40px;font-weight:600;cursor:pointer}
+      .sp-btn-ghost:hover{background:var(--primary-50)}
+      .sp-fs{position:fixed;inset:0;z-index:2000}
+      .sp-fs .sp-overlay{z-index:2001}
+      .sp-fs-note{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2002;background:var(--navy-900);color:#fff;padding:8px 16px;border-radius:99px;font-size:.82rem}
+    
+      /* ===== Notifications / Spotlight (ported) ===== */
+      .nf-l { display:block; font-size:13px; font-weight:600; color:var(--text); margin:0 0 6px; }
+      .nf-l small { color:var(--text-2); font-weight:400; }
+      .nf-form input, .nf-form select, .nf-form textarea { width:100%; }
+      .nf-form textarea { resize:vertical; }
+      .sp-wrap .glass-table { padding:20px 24px; }
+      .sp-thumb{background:var(--surface-3)}
+      .sp-state-live,.sp-state-scheduled,.sp-state-paused,.sp-state-expired,.sp-state-draft{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
     </style>
   </head>
 
@@ -2560,6 +2642,9 @@
         <a data-page="poems" href="#poems" data-tip="Poems" data-group="Community"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span class="nav-label">Poems</span></a>
         <a data-page="users" href="#users" data-tip="Users" data-group="Community"><i class="fa-solid fa-users" aria-hidden="true"></i><span class="nav-label">Users</span></a>
         <a data-page="badges" href="#badges" data-tip="Badges & XP" data-group="Community"><i class="fa-solid fa-medal" aria-hidden="true"></i><span class="nav-label">Badges &amp; XP</span></a>
+        <div class="menu-label">Engage</div>
+        <a data-page="notifications" href="#notifications" data-tip="Notifications" data-group="Engage"><i class="fa-solid fa-bell" aria-hidden="true"></i><span class="nav-label">Notifications</span></a>
+        <a data-page="spotlight" href="#spotlight" data-tip="Spotlight Popups" data-group="Engage"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span class="nav-label">Spotlight Popups</span></a>
         <div class="menu-label">Inbox</div>
         <a data-page="feedback" href="#feedback" data-tip="Feedback" data-group="Inbox"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i><span class="nav-label">Feedback</span></a>
         <a data-page="contact" href="#contact" data-tip="Contact Messages" data-group="Inbox"><i class="fa-solid fa-envelope" aria-hidden="true"></i><span class="nav-label">Contact Messages</span></a>
@@ -2796,26 +2881,26 @@
       function renderDashboard() {
         const totalPoems = poems.length;
         const totalUsers = users.length;
-        const pendingPoems = poems.filter((p) => p.status === "Pending").length;
-        const rejectedPoems = poems.filter((p) => p.status === "Rejected").length;
+        const pendingPoems = poems.filter((p) => poemStatus(p) === "unpublished").length;
+        const rejectedPoems = poems.filter((p) => poemStatus(p) === "rejected").length;
         const approvedPoems = totalPoems - pendingPoems - rejectedPoems;
         const suspendedUsers = users.filter((u) => u.suspended).length;
         const totalViews = poems.reduce((sum, p) => sum + (Number(p.views) || 0), 0);
         const recentPoems = poems.slice(0, 5);
-        const pendingList = poems.filter((p) => p.status === "Pending").slice(0, 5);
+        const pendingList = poems.filter((p) => poemStatus(p) === "unpublished").slice(0, 5);
         const topViewed = [...poems].filter((p) => Number(p.views) > 0).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
         const maxViews = topViewed.length ? Number(topViewed[0].views) : 1;
         const initial = (name) => (String(name).trim().charAt(0) || "?").toUpperCase();
         const pct = (n) => (totalPoems ? Math.round((n / totalPoems) * 100) : 0);
-        const statusClass = (st) => ((st || "Approved") === "Approved" ? "status-approved" : st === "Rejected" ? "status-rejected" : "status-pending");
+        const statusClass = (p) => poemStatusClass(poemStatus(p));
         const empty = (icon, title, text) => `<div class="empty-state compact"><span class="es-icon"><i class="fa-solid ${icon}"></i></span><b>${title}</b>${text}</div>`;
         const segs = [
-          { key: "Approved", n: approvedPoems, cls: "seg-ok" },
-          { key: "Pending", n: pendingPoems, cls: "seg-warn" },
+          { key: "Published", n: approvedPoems, cls: "seg-ok" },
+          { key: "Unpublished", n: pendingPoems, cls: "seg-warn" },
           { key: "Rejected", n: rejectedPoems, cls: "seg-bad" },
         ];
         const quick = [
-          { page: "poems", icon: "fa-book-open", tone: "", label: "Review poems", sub: `${pendingPoems} awaiting approval`, filter: pendingPoems ? "Pending" : "" },
+          { page: "poems", icon: "fa-book-open", tone: "", label: "Review poems", sub: `${pendingPoems} unpublished`, filter: pendingPoems ? "unpublished" : "" },
           { page: "users", icon: "fa-users", tone: "violet", label: "Manage users", sub: `${totalUsers} registered` },
           { page: "dictionary", icon: "fa-book", tone: "gold", label: "Dictionary", sub: "Add or edit words" },
           { page: "sher", icon: "fa-feather-pointed", tone: "", label: "आज का शेर", sub: "Daily couplet" },
@@ -2832,7 +2917,7 @@
             <div class="kpi is-lead">
               <div class="kpi-top"><span class="kpi-label">Total poems</span><span class="kpi-icon"><i class="fa-solid fa-book-open"></i></span></div>
               <div class="kpi-value">${totalPoems}</div>
-              <div class="kpi-foot">${pendingPoems ? `<span class="pill warn"><i class="fa-regular fa-clock"></i> ${pendingPoems} pending</span> review needed` : `<span class="pill ok"><i class="fa-solid fa-check"></i> 0 pending</span> all reviewed`}</div>
+              <div class="kpi-foot">${pendingPoems ? `<span class="pill warn"><i class="fa-regular fa-clock"></i> ${pendingPoems} unpublished</span> need a look` : `<span class="pill ok"><i class="fa-solid fa-check"></i> 0 unpublished</span> all live`}</div>
             </div>
             <div class="kpi">
               <div class="kpi-top"><span class="kpi-label">Poets</span><span class="kpi-icon violet"><i class="fa-solid fa-user-pen"></i></span></div>
@@ -2861,14 +2946,14 @@
                 <button class="list-row" type="button" data-poem="${escapeAttr(p._id)}">
                   <span class="lr-avatar">${escapeHtml(initial(authorName(p)))}</span>
                   <span class="lr-main"><div class="lr-title">${escapeHtml(p.title)}</div><div class="lr-sub">${escapeHtml(authorName(p))}${p.createdAt ? " · " + formatDate(p.createdAt) : ""}</div></span>
-                  <span class="status-badge ${statusClass(p.status)}">${escapeHtml(p.status || "Approved")}</span>
+                  <span class="status-badge ${statusClass(p)}">${escapeHtml(POEM_STATUS_LABEL[poemStatus(p)] || poemStatus(p))}</span>
                 </button>`).join("") : empty("fa-feather", "No poems yet", "Poems your poets submit will show up here.")}
             </div>
 
             <div class="card">
               <div class="card-head"><div><div class="card-title">Poem status</div><div class="card-sub">${totalPoems} poems in total</div></div></div>
               ${totalPoems ? `
-                <div class="dist-bar" role="img" aria-label="Poem status: ${approvedPoems} approved, ${pendingPoems} pending, ${rejectedPoems} rejected">
+                <div class="dist-bar" role="img" aria-label="Poem status: ${approvedPoems} published, ${pendingPoems} unpublished, ${rejectedPoems} rejected">
                   ${segs.filter((x) => x.n > 0).map((x) => `<span class="${x.cls}" style="width:${(x.n / totalPoems) * 100}%" title="${x.key}: ${x.n}"></span>`).join("")}
                 </div>
                 <div class="legend">
@@ -2880,15 +2965,15 @@
           <div class="dash-grid">
             <div class="card">
               <div class="card-head">
-                <div><div class="card-title">Pending approvals</div><div class="card-sub">Poems waiting for your review</div></div>
-                <button class="link-btn" type="button" data-goto="poems" data-filter="Pending">Review all</button>
+                <div><div class="card-title">Unpublished poems</div><div class="card-sub">Poems that are not public right now</div></div>
+                <button class="link-btn" type="button" data-goto="poems" data-filter="unpublished">Review all</button>
               </div>
               ${pendingList.length ? pendingList.map((p) => `
-                <button class="list-row" type="button" data-goto="poems" data-filter="Pending">
+                <button class="list-row" type="button" data-goto="poems" data-filter="unpublished">
                   <span class="lr-avatar">${escapeHtml(initial(authorName(p)))}</span>
                   <span class="lr-main"><div class="lr-title">${escapeHtml(p.title)}</div><div class="lr-sub">${escapeHtml(authorName(p))}</div></span>
-                  <span class="status-badge status-pending">Pending</span>
-                </button>`).join("") : empty("fa-circle-check", "You're all caught up", "No poems are waiting for approval.")}
+                  <span class="status-badge status-pending">Unpublished</span>
+                </button>`).join("") : empty("fa-circle-check", "You're all caught up", "Every poem is live.")}
             </div>
 
             <div class="card">
@@ -2925,6 +3010,13 @@
       }
 
       // ======================== ENHANCED POEMS SECTION (view improved, all backend functions preserved) ========================
+      // Poem moderation statuses: published / unpublished / rejected (legacy Approved/Pending are mapped).
+      const poemStatus = (p) => {
+        const s = String((p && p.status) || "published").toLowerCase();
+        return s === "approved" ? "published" : s === "pending" ? "unpublished" : s;
+      };
+      const POEM_STATUS_LABEL = { published: "Published", unpublished: "Unpublished", rejected: "Rejected" };
+      const poemStatusClass = (s) => (s === "published" ? "status-approved" : s === "unpublished" ? "status-pending" : "status-rejected");
       let poemSearchTerm = "";
       let poemStatusFilter = "all";
       let poemSort = "latest";
@@ -2968,19 +3060,15 @@
         );
         const poemTitle = escapeHtml(poem.title);
         const poemBody = escapeHtml(poem.body);
-        const statusClass =
-          poem.status === "Approved"
-            ? "status-approved"
-            : poem.status === "Pending"
-              ? "status-pending"
-              : "status-rejected";
+        const pStat = poemStatus(poem);
+        const statusClass = poemStatusClass(pStat);
 
         const modalContent = `
                 <div class="poem-preview-card">
                   <div class="poem-title-preview">${poemTitle}</div>
                   <div class="poem-meta-preview">
                     <span><i class="fa-regular fa-user"></i> ${fullName}</span>
-                    <span class="status-badge ${statusClass}"><i class="fa-regular fa-bookmark"></i> ${poem.status}</span>
+                    <span class="status-badge ${statusClass}"><i class="fa-regular fa-bookmark"></i> ${POEM_STATUS_LABEL[pStat] || pStat}</span>${pStat !== "published" && poem.moderationReason ? `<span class="admin-hint">${escapeHtml(poem.moderationReason)}</span>` : ""}
                     ${poem.createdAt ? `<span><i class="fa-regular fa-calendar"></i> ${new Date(poem.createdAt).toLocaleDateString()}</span>` : ""}
                     <span><i class="fa-regular fa-eye"></i> ${formatViews(poem.views)} views</span>
                   </div>
@@ -3030,7 +3118,7 @@
               .toLowerCase()
               .includes(poemSearchTerm.toLowerCase());
           const matchesStatus =
-            poemStatusFilter === "all" || p.status === poemStatusFilter;
+            poemStatusFilter === "all" || poemStatus(p) === poemStatusFilter;
           return matchesSearch && matchesStatus;
         });
         if (poemSort === "views")
@@ -3044,9 +3132,9 @@
                       <input type="text" id="poemSearch" placeholder="Search by title or author…" value="${escapeHtml(poemSearchTerm)}">
                       <select id="poemStatusFilter">
                           <option value="all" ${poemStatusFilter === "all" ? "selected" : ""}>All status</option>
-                          <option value="Approved" ${poemStatusFilter === "Approved" ? "selected" : ""}>Approved</option>
-                          <option value="Pending" ${poemStatusFilter === "Pending" ? "selected" : ""}>Pending</option>
-                          <option value="Rejected" ${poemStatusFilter === "Rejected" ? "selected" : ""}>Rejected</option>
+                          <option value="published" ${poemStatusFilter === "published" ? "selected" : ""}>Published</option>
+                          <option value="unpublished" ${poemStatusFilter === "unpublished" ? "selected" : ""}>Unpublished</option>
+                          <option value="rejected" ${poemStatusFilter === "rejected" ? "selected" : ""}>Rejected</option>
                       </select>
                       <select id="poemSortSelect">
                           <option value="latest" ${poemSort === "latest" ? "selected" : ""}>Latest first</option>
@@ -3061,12 +3149,7 @@
                       <tbody>
                       ${filteredPoems
                         .map((poem) => {
-                          const statusBg =
-                            poem.status === "Approved"
-                              ? "var(--success-bg);color:var(--success)"
-                              : poem.status === "Pending"
-                                ? "var(--warning-bg);color:var(--warning)"
-                                : "var(--danger-bg);color:var(--danger)";
+                          const pStatus = poemStatus(poem);
                           const previewExcerpt =
                             poem.body.length > 70
                               ? poem.body.substring(0, 70) + "…"
@@ -3078,11 +3161,12 @@
                            </td>
                           <td style="white-space:nowrap;"><i class="fa-regular fa-user-circle"></i> ${escapeHtml(authorName(poem))}</td>
                           <td>
-                            <select class="status-select-enhanced" data-status-change="${poem._id}" data-status="${escapeAttr(poem.status || "Approved")}">
-                              <option value="Approved" ${poem.status === "Approved" ? "selected" : ""}>Approved</option>
-                              <option value="Pending" ${poem.status === "Pending" ? "selected" : ""}>Pending</option>
-                              <option value="Rejected" ${poem.status === "Rejected" ? "selected" : ""}>Rejected</option>
+                            <select class="status-select-enhanced" data-status-change="${poem._id}" data-status="${escapeAttr(pStatus)}">
+                              <option value="published" ${pStatus === "published" ? "selected" : ""}>Published</option>
+                              <option value="unpublished" ${pStatus === "unpublished" ? "selected" : ""}>Unpublished</option>
+                              <option value="rejected" ${pStatus === "rejected" ? "selected" : ""}>Rejected</option>
                             </select>
+                            ${pStatus !== "published" && poem.moderationReason ? `<div class="admin-hint" style="max-width:200px">${escapeHtml(poem.moderationReason)}</div>` : ""}
                            </td>
                           <td style="white-space:nowrap; font-weight:600;">${formatViews(poem.views)}</td>
                           <td class="action-group">
@@ -3124,13 +3208,31 @@
           select.addEventListener("change", async (e) => {
             const poemId = select.getAttribute("data-status-change");
             const poem = poems.find((p) => p._id === poemId);
-            if (poem) {
-              const newStatus = e.target.value;
-              select.setAttribute("data-status", newStatus);
-              poem.status = newStatus;
-              showToast(`Status updated to ${newStatus}`);
-              renderPoems();
+            if (!poem) return;
+            const newStatus = e.target.value;
+            let reason = "";
+            if (newStatus === "rejected") {
+              reason = (window.prompt("Reason for rejecting this poem (the author will see it):", "") || "").trim();
+              if (reason.length < 3) { showToast("A reason is required to reject a poem"); return renderPoems(); }
+            } else if (newStatus === "unpublished") {
+              const r = window.prompt("Optional reason for unpublishing (the author will see it):", "");
+              if (r === null) return renderPoems();
+              reason = r.trim();
             }
+            const res = await fetch(`${API_URL}/poems/${poemId}/moderation`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: newStatus, reason }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              poem.status = newStatus;
+              poem.moderationReason = data.reason || "";
+              showToast(newStatus === "published" ? "Poem is public again — author notified" : `Poem ${newStatus} — author notified`);
+            } else {
+              showToast(escapeHtml(data.message || "Could not change status"));
+            }
+            renderPoems();
           });
         });
 
@@ -3173,12 +3275,7 @@
         </div>
         <div id="editPoemYoutubeMsg" style="font-size:12px;margin-top:6px;"></div>
         <div id="editPoemYoutubePreview" style="margin-top:10px;"></div>
-      </div>
-      <select id="editPoemStatus">
-        <option value="Approved" ${poem.status === "Approved" ? "selected" : ""}>Approved</option>
-        <option value="Pending" ${poem.status === "Pending" ? "selected" : ""}>Pending</option>
-        <option value="Rejected" ${poem.status === "Rejected" ? "selected" : ""}>Rejected</option>
-      </select>`,
+      </div>`,
               async () => {
                 const ytRaw = document.getElementById("editPoemYoutube").value.trim();
                 if (ytRaw && !extractYouTubeId(ytRaw)) {
@@ -4443,10 +4540,11 @@
             ${isFeedback
               ? `<td>${escapeHtml(FEEDBACK_TYPE_LABELS[it.feedbackType] || it.feedbackType)}</td><td><span class="inbox-stars">${stars}</span></td>`
               : `<td style="font-weight:600">${escapeHtml(it.subject)}</td>`}
-            <td><div class="inbox-snippet">${escapeHtml(it.message)}</div></td>
+            <td>${it.kind === "content_report" ? `<span class="status-badge status-blocked" style="margin-bottom:4px">Report${it.reportReason ? " · " + escapeHtml(it.reportReason) : ""}</span>` : ""}<div class="inbox-snippet">${escapeHtml(it.message)}</div></td>
             <td><span class="status-badge status-${it.status}">${escapeHtml(it.status)}</span>${isFeedback && it.verifyStatus ? `<div class="admin-hint">${it.verifyStatus === "verified" ? "✔ verified · " + escapeHtml(it.verifyKind || "") : escapeHtml(it.verifyStatus)}</div>` : ""}</td>
             <td class="action-group">
               <button class="icon-btn view" data-action="view" data-id="${it._id}"><i class="fa-solid fa-eye"></i> View</button>
+              <button class="icon-btn edit" data-action="reply" data-id="${it._id}" title="${it.userId ? "Reply — the member gets an in-app notification" : "Guest message: no account to notify, reply is only saved"}"><i class="fa-solid fa-reply"></i> ${it.adminReply ? "Replied" : "Reply"}</button>
               ${it.status !== "read" ? `<button class="icon-btn edit" data-action="read" data-id="${it._id}"><i class="fa-solid fa-envelope-open"></i> Read</button>` : ""}
               ${isFeedback && it.userId ? `<button class="icon-btn unblock" data-action="verify" data-id="${it._id}" title="Count toward badges"><i class="fa-solid fa-circle-check"></i> ${it.verifyStatus === "verified" ? "Verified" : "Verify"}</button>` : ""}
               ${isFeedback && it.verifyStatus ? `<button class="icon-btn edit" data-action="unverify" data-id="${it._id}" title="Clear verification (earned badges stay)"><i class="fa-solid fa-ban"></i> Clear</button>` : ""}
@@ -4491,10 +4589,28 @@
               ["Account", inboxUser(item) || "Guest"],
               ...(isFeedback ? [["Type", FEEDBACK_TYPE_LABELS[item.feedbackType] || item.feedbackType], ["Rating", item.rating ? item.rating + " / 5" : "Not given"]] : [["Subject", item.subject]]),
               ["Status", item.status],
+              ...(item.adminReply ? [["Our reply", item.adminReply]] : []),
             ];
             openModal(isFeedback ? "Feedback" : "Contact message",
               `<dl class="inbox-detail">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join("")}<dt>Message</dt><dd class="inbox-body">${escapeHtml(item.message)}</dd></dl>`, null);
             if (item.status === "new" && (await setInboxStatus(kind, id, "read"))) { item.status = "read"; st.summary.new--; st.summary.read++; drawInbox(kind); }
+            return;
+          }
+          if (action === "reply") {
+            openModal("Reply to " + (item.name || "member"),
+              `<div class="admin-hint" style="margin-bottom:8px">${item.userId ? "The member will see this in their Notifications." : "⚠ Guest (not logged in): there is no account to notify, so the reply is only saved here."}</div>
+               <div class="inbox-body" style="max-height:120px;overflow:auto;margin-bottom:10px">${escapeHtml(item.message)}</div>
+               <textarea id="inboxReplyText" rows="5" maxlength="600" placeholder="Write your reply (max 600 characters)">${escapeHtml(item.adminReply || "")}</textarea>
+               <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px"><input type="checkbox" id="inboxReplyResolve" checked style="width:auto;margin:0"> Mark as resolved</label>`,
+              async () => {
+                const message = document.getElementById("inboxReplyText").value.trim();
+                if (message.length < 3) { alert("Reply must be at least 3 characters."); return false; }
+                const res = await adminFetch(`/${kind}/${id}/reply`, { method: "POST", body: JSON.stringify({ message, resolve: document.getElementById("inboxReplyResolve").checked }) });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) { alert(data.message || "Could not send reply"); return false; }
+                showToast(data.notified ? "Reply sent — member notified" : "Reply saved");
+                renderInbox(kind);
+              });
             return;
           }
           if (action === "verify" || action === "unverify") {
@@ -5177,6 +5293,459 @@
         };
       }
 
+      // ======================== NOTIFICATIONS (announcements to members) ========================
+      let notifTypes = [];
+      let notifPolicyLinks = {};
+
+      async function renderNotificationsPage() {
+        const panel = document.getElementById("mainPanel");
+        panel.innerHTML = `<div class="page-header"><h1><i class="fa-solid fa-bell"></i> Notifications</h1></div><div class="empty-state"><span class="es-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span><b>Loading…</b></div>`;
+        try {
+          const [tRes, hRes] = await Promise.all([adminFetch("/notifications/types"), adminFetch("/notifications/history")]);
+          const t = await tRes.json().catch(() => ({}));
+          const h = await hRes.json().catch(() => ({}));
+          if (!tRes.ok || !t.success) throw new Error(t.message || "Could not load");
+          notifTypes = t.types; notifPolicyLinks = t.policyLinks || {};
+          drawNotificationsPage(h.items || []);
+        } catch (err) {
+          panel.innerHTML = `<div class="page-header"><h1>Notifications</h1></div><div class="glass-table" style="color:var(--danger)">⚠ ${escapeHtml(err.message || "Could not load")} <button class="icon-btn view" id="notifRetry" style="margin-left:10px">Retry</button></div>`;
+          document.getElementById("notifRetry").onclick = renderNotificationsPage;
+        }
+      }
+
+      function drawNotificationsPage(history) {
+        const typeOpts = notifTypes.map((t) => `<option value="${t.key}">${escapeHtml(t.label)}</option>`).join("");
+        const userOpts = users.filter((u) => !u.suspended).map((u) => `<option value="${u._id}">${escapeHtml(userDisplayName(u))}${u.username ? " (@" + escapeHtml(u.username) + ")" : ""}</option>`).join("");
+        const audLabel = (b) => b.audience === "all" ? "All members" : b.audience === "writers" ? "Writers" : "Member: " + escapeHtml(b.targetUserId ? `${b.targetUserId.firstName || ""} ${b.targetUserId.lastName || ""}`.trim() || b.targetUserId.username || "—" : "—");
+        const rows = history.map((b) => `<tr>
+            <td style="white-space:nowrap;font-size:.82rem;color:var(--text-2)">${escapeHtml(formatDateTime(b.createdAt))}</td>
+            <td><div style="font-weight:700">${escapeHtml(b.title)}</div><div class="inbox-snippet">${escapeHtml(b.message || "")}</div></td>
+            <td>${escapeHtml((notifTypes.find((t) => t.key === b.type) || {}).label || b.type)}${b.priority === "high" ? ' <span class="status-badge status-blocked">important</span>' : ""}</td>
+            <td>${audLabel(b)}</td>
+            <td>${b.retractedAt ? '<span class="status-badge status-blocked">Retracted</span>' : `${b.recipientCount} sent<div class="admin-hint">${b.readCount} read</div>`}</td>
+            <td class="action-group">${b.retractedAt ? "" : `<button class="icon-btn delete" data-retract="${b._id}" title="Remove from every member's inbox"><i class="fa-solid fa-rotate-left"></i> Retract</button>`}</td></tr>`).join("");
+
+        document.getElementById("mainPanel").innerHTML = `
+          <div class="page-header"><h1><i class="fa-solid fa-bell"></i> Notifications</h1></div>
+          <div class="glass-table nf-form" style="padding:22px;margin-bottom:22px">
+            <h3 style="margin:0 0 4px">Send a notification</h3>
+            <div class="admin-hint" style="margin-bottom:14px">Automatic ones (welcome, badges, featured, password, new device, poem rejected, support replies…) are sent by the server. Use this form for system updates, maintenance, new features, policy changes and moderation notices.</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+              <div><label class="nf-l">Type</label><select id="nfType">${typeOpts}</select></div>
+              <div><label class="nf-l">Send to</label><select id="nfAudience"><option value="all">All members</option><option value="writers">Writers (members with poems)</option><option value="user">One member…</option></select></div>
+              <div id="nfUserWrap" style="display:none"><label class="nf-l">Member</label><select id="nfUser"><option value="">Choose…</option>${userOpts}</select></div>
+              <div id="nfPolicyWrap" style="display:none"><label class="nf-l">Which policy</label><select id="nfPolicy"><option value="privacy">Privacy Policy</option><option value="terms">Terms &amp; Conditions</option><option value="copyright">Copyright Policy</option><option value="community">Community Guidelines</option><option value="cookie">Cookie Policy</option></select></div>
+              <div><label class="nf-l">Priority</label><select id="nfPriority"><option value="">Default for this type</option><option value="normal">Normal</option><option value="high">Important (highlighted)</option></select></div>
+            </div>
+            <label class="nf-l" style="margin-top:12px">Title <small id="nfTitleN">0/120</small></label>
+            <input id="nfTitle" maxlength="120" placeholder="e.g. आज रात 2 बजे रखरखाव">
+            <label class="nf-l" style="margin-top:12px">Message <small id="nfMsgN">0/600</small></label>
+            <textarea id="nfMsg" rows="4" maxlength="600" placeholder="Details members should know"></textarea>
+            <label class="nf-l" style="margin-top:12px">Link (optional) — e.g. /privacy-policy or https://…</label>
+            <input id="nfLink" maxlength="300" placeholder="/poems">
+            <div id="nfErr" style="color:var(--danger);margin-top:10px;font-weight:600"></div>
+            <div style="margin-top:14px"><button class="btn-primary" id="nfSend"><i class="fa-solid fa-paper-plane"></i> Send notification</button></div>
+          </div>
+          <div class="glass-table inbox-wrap"><h3 style="margin:0 0 10px">Sent announcements</h3>
+            <table><thead><tr><th>Date</th><th>Notification</th><th>Type</th><th>Audience</th><th>Delivery</th><th></th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="6" style="text-align:center">Nothing sent yet</td></tr>'}</tbody></table></div>`;
+
+        const $ = (id) => document.getElementById(id);
+        const sync = () => {
+          const type = $("nfType").value;
+          $("nfUserWrap").style.display = $("nfAudience").value === "user" ? "" : "none";
+          $("nfPolicyWrap").style.display = type === "policy_update" ? "" : "none";
+          const def = (notifTypes.find((t) => t.key === type) || {}).defaultLink || "";
+          if (type === "policy_update") $("nfLink").value = notifPolicyLinks[$("nfPolicy").value] || def;
+        };
+        $("nfType").onchange = () => { const d = (notifTypes.find((t) => t.key === $("nfType").value) || {}).defaultLink || ""; $("nfLink").value = d; sync(); };
+        $("nfAudience").onchange = sync;
+        $("nfPolicy").onchange = () => { $("nfLink").value = notifPolicyLinks[$("nfPolicy").value] || ""; };
+        $("nfTitle").oninput = () => { $("nfTitleN").textContent = $("nfTitle").value.length + "/120"; };
+        $("nfMsg").oninput = () => { $("nfMsgN").textContent = $("nfMsg").value.length + "/600"; };
+        sync();
+
+        $("nfSend").onclick = async () => {
+          const body = { type: $("nfType").value, audience: $("nfAudience").value, title: $("nfTitle").value.trim(), message: $("nfMsg").value.trim(), link: $("nfLink").value.trim(), priority: $("nfPriority").value || undefined };
+          if (body.audience === "user") body.userId = $("nfUser").value;
+          $("nfErr").textContent = "";
+          if (body.title.length < 3) return ($("nfErr").textContent = "Please write a title (at least 3 characters).");
+          if (body.audience === "user" && !body.userId) return ($("nfErr").textContent = "Choose the member to notify.");
+          const who = body.audience === "all" ? "EVERY member" : body.audience === "writers" ? "all writers" : "this member";
+          if (!confirm(`Send “${body.title}” to ${who}?`)) return;
+          const btn = $("nfSend"); btn.disabled = true;
+          const res = await adminFetch("/notifications/send", { method: "POST", body: JSON.stringify(body) });
+          const data = await res.json().catch(() => ({}));
+          btn.disabled = false;
+          if (!res.ok || !data.success) return ($("nfErr").textContent = data.message || "Could not send.");
+          showToast(`Sent to ${data.recipientCount} member${data.recipientCount === 1 ? "" : "s"}`);
+          renderNotificationsPage();
+        };
+        document.querySelectorAll("[data-retract]").forEach((b) => b.addEventListener("click", async () => {
+          if (!confirm("Remove this announcement from every member's inbox?")) return;
+          const res = await adminFetch(`/notifications/history/${b.dataset.retract}`, { method: "DELETE" });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) return showToast(escapeHtml(data.message || "Could not retract"));
+          showToast(`Removed ${data.removed} copies`);
+          renderNotificationsPage();
+        }));
+      }
+
+      // ======================== SPOTLIGHT POPUPS (promotional popups shown on the website) ========================
+      const SP_ROUTE_CHIPS = [["Home", "/"], ["Poems", "/poems"], ["Every poem page", "/poem/*"], ["Categories", "/category/*"], ["Poets", "/poets"], ["Dictionary", "/dictionary"]];
+      const SP_STATE_LABEL = { live: "Live", scheduled: "Scheduled", paused: "Paused", expired: "Expired", draft: "Draft" };
+      const SP_FREQ_LABEL = { session: "Once per visit", day: "Once a day", campaign: "Once per campaign" };
+      const spBlank = () => ({ _id: "", name: "", mode: "custom", status: "draft", enabled: true, priority: 0, startAt: "", endAt: "", targetMode: "all", targetRoutes: [], audience: "everyone", frequency: "session", persistDays: 30, stayDismissed: false, title: "", subtitle: "", highlights: [], image: null, backgroundImage: null, imageAlt: "", backgroundColor: "", headingColor: "", textColor: "", accentColor: "", ctaLabel: "", ctaUrl: "", ctaOpenInNewTab: false, ctaColor: "", ctaTextColor: "", secondaryLabel: "", secondaryUrl: "", closeStyle: "dark", closeOnBackdrop: true });
+      let spItems = [];
+      let spSettings = { enabled: true };
+      let spEdit = null;
+      let spUploaded = new Set(); // publicIds uploaded in the open editor (discarded if the editor is cancelled)
+      let spSavedIds = new Set(); // publicIds already stored on the saved campaign
+
+      async function spApi(path, options = {}) {
+        try {
+          const res = await adminFetch(`/spotlight${path}`, options);
+          const data = await res.json().catch(() => ({}));
+          return { ok: res.ok && data.success !== false, status: res.status, data };
+        } catch (e) {
+          return { ok: false, status: 0, data: { message: "Could not reach the server. Please try again." } };
+        }
+      }
+
+      const spLocalInput = (iso) => {
+        if (!iso) return "";
+        const d = new Date(iso); if (Number.isNaN(d.getTime())) return "";
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+      };
+      const spFromLocalInput = (v) => { if (!v) return null; const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d.toISOString(); };
+      const spWhen = (iso) => iso ? new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+      const spSafeColor = (c) => (/^#[0-9a-f]{3,8}$/i.test(c || "") ? c : "");
+
+      // Wrap highlighted phrases in <mark>; everything is escaped, nothing from the admin is ever inserted as HTML.
+      function spHighlight(text, phrases) {
+        const list = (phrases || []).filter(Boolean).sort((a, b) => b.length - a.length);
+        if (!list.length) return escapeHtml(text);
+        const re = new RegExp(`(${list.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "g");
+        return text.split(re).map((part, i) => (i % 2 ? `<mark class="sp-hl">${escapeHtml(part)}</mark>` : escapeHtml(part))).join("");
+      }
+
+      // Same markup/classes as the website popup (components/spotlight/SpotlightPopup.tsx).
+      function spPopupHtml(c) {
+        const vars = [];
+        if (spSafeColor(c.accentColor)) vars.push(`--sp-accent:${c.accentColor}`);
+        const cta = spSafeColor(c.ctaColor) || spSafeColor(c.accentColor);
+        if (cta) vars.push(`--sp-cta:${cta}`);
+        if (spSafeColor(c.ctaTextColor)) vars.push(`--sp-cta-text:${c.ctaTextColor}`);
+        const close = `<button type="button" class="sp-close ${c.closeStyle === "light" ? "sp-close--light" : ""}" data-sp-close aria-label="Close">&times;</button>`;
+        const buttons = (c.ctaLabel && c.ctaUrl ? `<a class="sp-btn sp-btn--primary" href="${escapeAttr(c.ctaUrl)}" data-sp-link>${escapeHtml(c.ctaLabel)}</a>` : "") +
+          (c.secondaryLabel && c.secondaryUrl ? `<a class="sp-btn sp-btn--secondary" href="${escapeAttr(c.secondaryUrl)}" data-sp-link>${escapeHtml(c.secondaryLabel)}</a>` : "");
+        let inner;
+        if (c.mode === "image") {
+          const hasBar = !!buttons;
+          const im = c.image ? `<img class="sp-img" src="${escapeAttr(c.image.url)}" alt="${escapeAttr(c.imageAlt || c.title || "")}" ${c.image.width ? `width="${c.image.width}" height="${c.image.height}"` : ""}>` : `<div style="padding:60px 30px;text-align:center;color:#9a8a82">Upload a poster image to preview it here</div>`;
+          const linked = c.image && c.ctaUrl && !c.ctaLabel ? `<a class="sp-imglink" href="${escapeAttr(c.ctaUrl)}" data-sp-link>${im}</a>` : im;
+          inner = `<div class="sp-card sp-card--image ${hasBar ? "sp-has-bar" : ""}" role="dialog" aria-modal="true" aria-label="${escapeAttr(c.imageAlt || c.title || "Announcement")}">${close}<div class="sp-scroll">${linked}${hasBar ? `<div class="sp-bar">${buttons}</div>` : ""}</div></div>`;
+        } else {
+          const bg = c.backgroundImage ? `background-image:url('${escapeAttr(c.backgroundImage.url)}');` : "";
+          const bgc = spSafeColor(c.backgroundColor) ? `background-color:${c.backgroundColor};` : "";
+          const media = c.image ? `<img class="sp-media" src="${escapeAttr(c.image.url)}" alt="${escapeAttr(c.imageAlt || c.title || "")}" ${c.image.width ? `width="${c.image.width}" height="${c.image.height}"` : ""}>` : "";
+          const hc = spSafeColor(c.headingColor) ? `style="color:${c.headingColor}"` : "";
+          const tc = spSafeColor(c.textColor) ? `style="color:${c.textColor}"` : "";
+          const empty = !c.title && !c.subtitle && !c.image && !buttons;
+          inner = `<div class="sp-card" style="${bgc}${bg}" role="dialog" aria-modal="true" aria-label="${escapeAttr(c.title || "Announcement")}">${close}<div class="sp-scroll">${media}<div class="sp-body">
+            ${c.title ? `<h2 class="sp-title" dir="auto" ${hc}>${spHighlight(c.title, c.highlights)}</h2>` : ""}
+            ${c.subtitle ? `<p class="sp-text" dir="auto" ${tc}>${spHighlight(c.subtitle, c.highlights)}</p>` : ""}
+            ${empty ? `<p class="sp-text" style="color:#9a8a82">Start typing a title or add an image…</p>` : ""}
+            ${buttons ? `<div class="sp-actions">${buttons}</div>` : ""}</div></div></div>`;
+        }
+        return `<div class="sp-overlay" style="${vars.join(";")}">${inner}</div>`;
+      }
+
+      function spFullPreview(c) {
+        const wrap = document.createElement("div");
+        wrap.className = "sp-fs";
+        wrap.innerHTML = spPopupHtml(c) + `<div class="sp-fs-note">Preview — links are disabled · press Esc to close</div>`;
+        const done = () => { wrap.remove(); document.removeEventListener("keydown", onKey); };
+        const onKey = (e) => { if (e.key === "Escape") done(); };
+        document.addEventListener("keydown", onKey);
+        wrap.addEventListener("click", (e) => {
+          if (e.target.closest("[data-sp-link]")) { e.preventDefault(); return; }
+          if (e.target.closest("[data-sp-close]") || e.target.classList.contains("sp-overlay")) done();
+        });
+        document.body.appendChild(wrap);
+      }
+
+      // ---------------------------------- list ----------------------------------
+      async function renderSpotlightPage() {
+        const panel = document.getElementById("mainPanel");
+        panel.innerHTML = `<div class="page-header"><h1><i class="fa-solid fa-wand-magic-sparkles"></i> Spotlight Popups</h1></div><div class="empty-state"><span class="es-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span><b>Loading…</b></div>`;
+        const r = await spApi("");
+        if (!r.ok) {
+          panel.innerHTML = `<div class="page-header"><h1>Spotlight Popups</h1></div><div class="glass-table" style="color:var(--danger)">⚠ ${escapeHtml(r.data.message || "Could not load")} <button class="icon-btn view" id="spRetry" style="margin-left:10px">Retry</button></div>`;
+          document.getElementById("spRetry").onclick = renderSpotlightPage;
+          return;
+        }
+        spItems = r.data.items || []; spSettings = r.data.settings || { enabled: true };
+        drawSpotlightList();
+      }
+
+      function drawSpotlightList() {
+        const rows = spItems.map((c) => {
+          const sched = c.startAt || c.endAt ? `${c.startAt ? "From " + escapeHtml(spWhen(c.startAt)) : "Starts immediately"}<div class="admin-hint">${c.endAt ? "Until " + escapeHtml(spWhen(c.endAt)) : "No end date"}</div>` : "Always (no dates)";
+          const pages = c.targetMode === "selected" ? escapeHtml((c.targetRoutes || []).join(", ")) : "All pages";
+          const thumb = c.image && c.image.url ? `<img class="sp-thumb" src="${escapeAttr(c.image.url)}" alt="">` : `<div class="sp-thumb" style="display:grid;place-items:center;color:var(--text-2)"><i class="fa-solid fa-message"></i></div>`;
+          const pub = c.status === "published";
+          return `<tr data-id="${c._id}">
+            <td><div class="sp-name">${thumb}<div><b>${escapeHtml(c.name)}</b><span class="admin-hint">${c.mode === "image" ? "Poster image" : escapeHtml(c.title || "Text popup")}</span></div></div></td>
+            <td><span class="status-badge sp-state-${c.state}">${SP_STATE_LABEL[c.state] || c.state}</span></td>
+            <td>${c.priority}</td>
+            <td style="font-size:.85rem">${sched}</td>
+            <td style="font-size:.85rem;max-width:180px;word-break:break-word">${pages}<div class="admin-hint">${c.audience === "everyone" ? "Everyone" : c.audience === "guests" ? "Visitors only" : "Members only"}</div></td>
+            <td style="font-size:.85rem">${SP_FREQ_LABEL[c.frequency] || c.frequency}${c.frequency === "campaign" ? `<div class="admin-hint">${c.persistDays} days</div>` : ""}</td>
+            <td><div class="action-group">
+              <button class="icon-btn view" data-act="preview"><i class="fa-solid fa-eye"></i> Preview</button>
+              <button class="icon-btn edit" data-act="edit"><i class="fa-solid fa-pen"></i> Edit</button>
+              <button class="icon-btn ${pub ? "block" : "unblock"}" data-act="${pub ? "unpublish" : "publish"}"><i class="fa-solid ${pub ? "fa-eye-slash" : "fa-rocket"}"></i> ${pub ? "Unpublish" : "Publish"}</button>
+              ${pub ? `<button class="icon-btn view" data-act="${c.enabled ? "pause" : "resume"}"><i class="fa-solid ${c.enabled ? "fa-pause" : "fa-play"}"></i> ${c.enabled ? "Pause" : "Resume"}</button>` : ""}
+              <button class="icon-btn delete" data-act="delete"><i class="fa-solid fa-trash"></i> Delete</button></div></td></tr>`;
+        }).join("");
+        document.getElementById("mainPanel").innerHTML = `<div class="sp-wrap">
+          <div class="page-header"><h1><i class="fa-solid fa-wand-magic-sparkles"></i> Spotlight Popups</h1>
+            <div class="sp-head-actions">
+              <label class="sp-switch" title="Master switch: when off, no popup is shown anywhere on the website"><input type="checkbox" id="spGlobal" ${spSettings.enabled ? "checked" : ""}> Popups ${spSettings.enabled ? "ON" : "OFF"} site-wide</label>
+              <button class="btn-primary" id="spNew"><i class="fa-solid fa-plus"></i> New popup</button></div></div>
+          <div class="admin-hint" style="margin:-14px 0 16px;font-size:.85rem">Only one popup is ever shown at a time: the live one with the highest priority for that page (ties go to the most recently started). Changes appear on the website on the visitor's next page load.</div>
+          <div class="glass-table"><table><thead><tr><th>Popup</th><th>Status</th><th>Priority</th><th>Schedule</th><th>Pages</th><th>Shows</th><th></th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="7" style="text-align:center;padding:36px;color:var(--text-2)">No popups yet. Click “New popup” to create your first one.</td></tr>'}</tbody></table></div></div>`;
+
+        document.getElementById("spNew").onclick = () => spOpenEditor(null);
+        document.getElementById("spGlobal").onchange = async (e) => {
+          const want = e.target.checked;
+          const r = await spApi("/settings", { method: "PUT", body: JSON.stringify({ enabled: want }) });
+          if (!r.ok) { e.target.checked = !want; return showToast(escapeHtml(r.data.message || "Could not change the setting")); }
+          spSettings = r.data.settings; showToast(want ? "Popups are ON site-wide" : "Popups are OFF site-wide"); drawSpotlightList();
+        };
+        document.querySelectorAll(".sp-wrap [data-act]").forEach((b) => b.addEventListener("click", () => spRowAction(b.closest("tr").dataset.id, b.dataset.act)));
+      }
+
+      async function spRowAction(id, act) {
+        const c = spItems.find((x) => x._id === id); if (!c) return;
+        if (act === "preview") return spFullPreview(c);
+        if (act === "edit") return spOpenEditor(id);
+        if (act === "delete") {
+          if (!confirm(`Delete “${c.name}” permanently?\n\nThis removes the popup and its uploaded images. This cannot be undone.`)) return;
+          const r = await spApi(`/${id}`, { method: "DELETE" });
+          showToast(r.ok ? "Popup deleted" : escapeHtml(r.data.message || "Could not delete"));
+          return r.ok ? renderSpotlightPage() : null;
+        }
+        const body = act === "publish" ? { status: "published" } : act === "unpublish" ? { status: "draft" } : act === "pause" ? { enabled: false } : { enabled: true };
+        const r = await spApi(`/${id}/status`, { method: "PATCH", body: JSON.stringify(body) });
+        if (!r.ok) return showToast(escapeHtml(r.data.message || "Could not update"));
+        showToast({ publish: "Published", unpublish: "Unpublished (saved as draft)", pause: "Paused", resume: "Resumed" }[act]);
+        renderSpotlightPage();
+      }
+
+      // ---------------------------------- editor ----------------------------------
+      async function spOpenEditor(id) {
+        spUploaded = new Set();
+        if (id) {
+          const r = await spApi(`/${id}`);
+          if (!r.ok) return showToast(escapeHtml(r.data.message || "Could not open"));
+          spEdit = { ...spBlank(), ...r.data.item };
+          spEdit.image = spEdit.image && spEdit.image.url ? spEdit.image : null;
+          spEdit.backgroundImage = spEdit.backgroundImage && spEdit.backgroundImage.url ? spEdit.backgroundImage : null;
+        } else spEdit = spBlank();
+        spSavedIds = new Set([spEdit.image && spEdit.image.publicId, spEdit.backgroundImage && spEdit.backgroundImage.publicId].filter(Boolean));
+        drawSpotlightEditor();
+      }
+
+      function spColorField(key, label, fallback) {
+        const v = spEdit[key];
+        return `<div><label class="nf-l">${label}</label><div class="sp-color"><input type="color" id="sp_${key}" value="${v || fallback}" data-set="${v ? 1 : 0}" data-fallback="${fallback}"><button type="button" class="sp-reset" data-reset="sp_${key}">Default</button></div></div>`;
+      }
+      function spImageField(key, label, hint) {
+        const im = spEdit[key];
+        return `<div style="margin-top:12px"><label class="nf-l">${label}</label><div class="sp-up">
+          ${im ? `<img src="${escapeAttr(im.url)}" alt="">` : `<div class="sp-up-empty"><i class="fa-regular fa-image"></i></div>`}
+          <div><button type="button" class="sp-btn-ghost" data-upload="${key}" style="padding:9px 16px">${im ? "Replace image" : "Upload image"}</button>
+          ${im ? `<button type="button" class="sp-btn-ghost" data-remove="${key}" style="padding:9px 16px;margin-left:6px;color:var(--danger)">Remove</button>` : ""}
+          <div class="sp-up-meta" id="spUpMeta_${key}">${im ? `${im.width || "?"}×${im.height || "?"} px${im.bytes ? " · " + Math.round(im.bytes / 1024) + " KB" : ""}` : hint}</div>
+          <input type="file" id="spFile_${key}" accept="image/jpeg,image/png,image/webp" style="display:none"></div></div></div>`;
+      }
+
+      function drawSpotlightEditor() {
+        const c = spEdit; const isNew = !c._id; const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "your time zone";
+        const isImg = c.mode === "image";
+        document.getElementById("mainPanel").innerHTML = `<div class="sp-wrap">
+          <div class="page-header"><h1><i class="fa-solid fa-wand-magic-sparkles"></i> ${isNew ? "New popup" : "Edit popup"}</h1>
+            <div class="sp-head-actions"><button class="sp-btn-ghost" id="spBack"><i class="fa-solid fa-arrow-left"></i> Back to all popups</button></div></div>
+          <div class="sp-editor"><div class="sp-form" id="spForm">
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-layer-group"></i> 1 · Type</div>
+              <label class="nf-l">Internal name <small>only you see this</small></label><input type="text" id="sp_name" maxlength="80" placeholder="e.g. Diwali Shayari Special 2026" value="${escapeAttr(c.name)}">
+              <div class="sp-mode" style="margin-top:12px">
+                <label><input type="radio" name="sp_mode" value="image" ${isImg ? "checked" : ""}> <b>Poster image</b><span class="admin-hint">Upload a finished poster; it is shown as-is.</span></label>
+                <label><input type="radio" name="sp_mode" value="custom" ${!isImg ? "checked" : ""}> <b>Text + image</b><span class="admin-hint">Title, description, colours and buttons.</span></label></div></div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-pen-nib"></i> 2 · Content</div>
+              <div id="spCustomFields" style="${isImg ? "display:none" : ""}">
+                <label class="nf-l">Title <small id="spTitleN"></small></label><input type="text" id="sp_title" maxlength="120" placeholder="e.g. दीपावली विशेष संग्रह" value="${escapeAttr(c.title)}">
+                <label class="nf-l">Description <small id="spSubN"></small></label><textarea id="sp_subtitle" maxlength="600" rows="4" placeholder="A short message for readers">${escapeHtml(c.subtitle)}</textarea>
+                <label class="nf-l">Highlighted words <small>one per line, up to 5 — must appear in the title or description</small></label><textarea id="sp_highlights" rows="2" maxlength="400">${escapeHtml((c.highlights || []).join("\n"))}</textarea>
+                ${isImg ? "" : spImageField("image", "Main image (optional)", "JPG, PNG or WebP · up to 5 MB")}
+                ${isImg ? "" : spImageField("backgroundImage", "Background image (optional)", "Shown behind the text · up to 5 MB")}
+              </div>
+              <div id="spImageFields" style="${isImg ? "" : "display:none"}">${isImg ? spImageField("image", "Poster image", "JPG, PNG or WebP · up to 5 MB. Shown without stretching.") : ""}</div>
+              <label class="nf-l" style="margin-top:12px">Image description (alt text) <small>for screen readers</small></label><input type="text" id="sp_imageAlt" maxlength="200" placeholder="Describe the image in a few words" value="${escapeAttr(c.imageAlt)}"></div>
+
+            <div class="admin-form-section" id="spColorSection" style="${isImg ? "display:none" : ""}"><div class="admin-form-section-title"><i class="fa-solid fa-palette"></i> 3 · Colours</div>
+              <div class="admin-form-grid">${spColorField("backgroundColor", "Background", "#fffdf8")}${spColorField("headingColor", "Heading", "#9e4f36")}${spColorField("textColor", "Body text", "#4a3f38")}${spColorField("accentColor", "Accent / highlights", "#c16a4b")}</div></div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-arrow-pointer"></i> 4 · Buttons &amp; links</div>
+              <div class="admin-form-grid"><div><label class="nf-l">Button label</label><input type="text" id="sp_ctaLabel" maxlength="40" placeholder="e.g. अभी पढ़ें" value="${escapeAttr(c.ctaLabel)}"></div>
+              <div><label class="nf-l">Button link</label><input type="text" id="sp_ctaUrl" maxlength="500" placeholder="/poems or https://…" value="${escapeAttr(c.ctaUrl)}"></div></div>
+              <div class="admin-hint" id="spLinkHint" style="margin-top:6px">${isImg ? "With a link but no button label, the whole poster becomes clickable." : ""}</div>
+              <label class="sp-check"><input type="checkbox" id="sp_ctaOpenInNewTab" ${c.ctaOpenInNewTab ? "checked" : ""}> Open links in a new tab</label>
+              <div class="admin-form-grid" style="margin-top:6px"><div><label class="nf-l">Second button label (optional)</label><input type="text" id="sp_secondaryLabel" maxlength="40" value="${escapeAttr(c.secondaryLabel)}"></div>
+              <div><label class="nf-l">Second button link</label><input type="text" id="sp_secondaryUrl" maxlength="500" value="${escapeAttr(c.secondaryUrl)}"></div></div>
+              <div class="admin-form-grid" style="margin-top:6px">${spColorField("ctaColor", "Button colour", "#c16a4b")}${spColorField("ctaTextColor", "Button text colour", "#ffffff")}</div></div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-clock"></i> 5 · When &amp; where</div>
+              <div class="admin-form-grid"><div><label class="nf-l">Start <small>${escapeHtml(tz)}</small></label><input type="datetime-local" id="sp_startAt" value="${spLocalInput(c.startAt)}"></div>
+              <div><label class="nf-l">End <small>${escapeHtml(tz)}</small></label><input type="datetime-local" id="sp_endAt" value="${spLocalInput(c.endAt)}"></div></div>
+              <div class="admin-hint">Leave both empty to show it as soon as it is published, until you unpublish it.</div>
+              <div class="admin-form-grid" style="margin-top:6px"><div><label class="nf-l">Pages</label><select id="sp_targetMode"><option value="all" ${c.targetMode === "all" ? "selected" : ""}>All pages</option><option value="selected" ${c.targetMode === "selected" ? "selected" : ""}>Only selected pages</option></select></div>
+              <div><label class="nf-l">Who sees it</label><select id="sp_audience"><option value="everyone" ${c.audience === "everyone" ? "selected" : ""}>Everyone</option><option value="guests" ${c.audience === "guests" ? "selected" : ""}>Visitors who are not logged in</option><option value="members" ${c.audience === "members" ? "selected" : ""}>Logged-in members only</option></select></div></div>
+              <div id="spRoutesWrap" style="${c.targetMode === "selected" ? "" : "display:none"}"><label class="nf-l">Pages <small>one per line · a trailing * means “everything under it”</small></label>
+                <textarea id="sp_targetRoutes" rows="3">${escapeHtml((c.targetRoutes || []).join("\n"))}</textarea>
+                <div class="sp-chips">${SP_ROUTE_CHIPS.map(([l, r]) => `<button type="button" class="sp-chip" data-route="${r}">+ ${l} <small>${r}</small></button>`).join("")}</div></div>
+              <div class="admin-form-grid" style="margin-top:6px"><div><label class="nf-l">Priority <small>0–100, higher wins</small></label><input type="number" id="sp_priority" min="0" max="100" value="${c.priority}"></div></div></div>
+
+            <div class="admin-form-section"><div class="admin-form-section-title"><i class="fa-solid fa-repeat"></i> 6 · How often &amp; closing</div>
+              <div class="admin-form-grid"><div><label class="nf-l">Show it</label><select id="sp_frequency"><option value="session" ${c.frequency === "session" ? "selected" : ""}>Once per visit (session)</option><option value="day" ${c.frequency === "day" ? "selected" : ""}>Once a day</option><option value="campaign" ${c.frequency === "campaign" ? "selected" : ""}>Once per campaign</option></select></div>
+              <div id="spPersistWrap" style="${c.frequency === "campaign" ? "" : "display:none"}"><label class="nf-l">Don't show again for <small>days</small></label><input type="number" id="sp_persistDays" min="1" max="365" value="${c.persistDays}"></div></div>
+              <label class="sp-check"><input type="checkbox" id="sp_stayDismissed" ${c.stayDismissed ? "checked" : ""}> Once someone closes it, never show this campaign to them again (until a new campaign)</label>
+              <div class="admin-form-grid" style="margin-top:8px"><div><label class="nf-l">Close button</label><select id="sp_closeStyle"><option value="dark" ${c.closeStyle === "dark" ? "selected" : ""}>Light button (for dark images)</option><option value="light" ${c.closeStyle === "light" ? "selected" : ""}>Dark button (for light images)</option></select></div></div>
+              <label class="sp-check"><input type="checkbox" id="sp_closeOnBackdrop" ${c.closeOnBackdrop ? "checked" : ""}> Clicking outside the popup closes it</label>
+              ${isNew ? "" : `<label class="sp-check"><input type="checkbox" id="sp_reset"> Show again to people who already closed it <span class="admin-hint">(use after a big edit)</span></label>`}</div>
+            <div id="spMsg"></div>
+            <div class="sp-footer">
+              ${c.status === "published" ? `<button class="btn-primary" id="spSave" data-status="published"><i class="fa-solid fa-floppy-disk"></i> Save changes</button><button class="sp-btn-ghost" id="spSaveDraft" data-status="draft">Unpublish (save as draft)</button>` : `<button class="sp-btn-ghost" id="spSaveDraft" data-status="draft"><i class="fa-solid fa-floppy-disk"></i> Save draft</button><button class="btn-primary" id="spSave" data-status="published"><i class="fa-solid fa-rocket"></i> Save &amp; publish</button>`}
+              <button class="sp-btn-ghost" id="spCancel">Cancel</button></div>
+          </div>
+          <div class="sp-preview-col"><div class="sp-preview-tools"><b style="color:var(--primary-700)">Live preview</b>
+            <button type="button" class="sp-chip" data-width="100%">Desktop</button><button type="button" class="sp-chip" data-width="375px">Mobile</button><button type="button" class="sp-chip" id="spFull">Full screen</button></div>
+            <div class="sp-stage" id="spStage"></div>
+            <div class="admin-hint" style="margin-top:8px">The preview uses the same layout as the website. Buttons are disabled here.</div></div></div></div>`;
+        spWireEditor();
+        spRefreshPreview();
+      }
+
+      // Reads the form into spEdit (images live in state, not in the DOM).
+      function spCollect() {
+        const $ = (id) => document.getElementById(id); const c = spEdit;
+        const val = (id) => ($(id) ? $(id).value : "");
+        c.name = val("sp_name").trim();
+        c.mode = (document.querySelector('input[name="sp_mode"]:checked') || {}).value || "custom";
+        c.title = val("sp_title").trim(); c.subtitle = val("sp_subtitle").trim();
+        c.highlights = val("sp_highlights").split("\n").map((s) => s.trim()).filter(Boolean);
+        c.imageAlt = val("sp_imageAlt").trim();
+        for (const k of ["backgroundColor", "headingColor", "textColor", "accentColor", "ctaColor", "ctaTextColor"]) { const el = $("sp_" + k); c[k] = el && el.dataset.set === "1" ? el.value : ""; }
+        c.ctaLabel = val("sp_ctaLabel").trim(); c.ctaUrl = val("sp_ctaUrl").trim(); c.ctaOpenInNewTab = $("sp_ctaOpenInNewTab").checked;
+        c.secondaryLabel = val("sp_secondaryLabel").trim(); c.secondaryUrl = val("sp_secondaryUrl").trim();
+        c.startAt = spFromLocalInput(val("sp_startAt")); c.endAt = spFromLocalInput(val("sp_endAt"));
+        c.targetMode = val("sp_targetMode"); c.audience = val("sp_audience");
+        c.targetRoutes = val("sp_targetRoutes").split("\n").map((s) => s.trim()).filter(Boolean);
+        c.priority = val("sp_priority") === "" ? 0 : Number(val("sp_priority"));
+        c.frequency = val("sp_frequency"); c.persistDays = val("sp_persistDays") === "" ? 30 : Number(val("sp_persistDays"));
+        c.stayDismissed = $("sp_stayDismissed").checked; c.closeStyle = val("sp_closeStyle"); c.closeOnBackdrop = $("sp_closeOnBackdrop").checked;
+        return c;
+      }
+
+      function spRefreshPreview() {
+        spCollect();
+        const stage = document.getElementById("spStage"); if (!stage) return;
+        stage.innerHTML = spPopupHtml(spEdit);
+        const t = document.getElementById("spTitleN"), s = document.getElementById("spSubN");
+        if (t) t.textContent = `${spEdit.title.length}/120`; if (s) s.textContent = `${spEdit.subtitle.length}/600`;
+      }
+
+      // Uploads made in this editor that were never saved onto the campaign are removed from storage again.
+      async function spDiscardUnsaved() {
+        for (const pid of spUploaded) if (!spSavedIds.has(pid)) await spApi("/upload", { method: "DELETE", body: JSON.stringify({ publicId: pid }) });
+        spUploaded = new Set();
+      }
+
+      function spWireEditor() {
+        const $ = (id) => document.getElementById(id); const form = $("spForm");
+        form.addEventListener("input", (e) => { if (e.target.type === "color") e.target.dataset.set = "1"; spRefreshPreview(); });
+        form.addEventListener("change", (e) => {
+          if (e.target.name === "sp_mode") { spCollect(); drawSpotlightEditor(); return; }
+          if (e.target.id === "sp_targetMode") $("spRoutesWrap").style.display = e.target.value === "selected" ? "" : "none";
+          if (e.target.id === "sp_frequency") $("spPersistWrap").style.display = e.target.value === "campaign" ? "" : "none";
+          spRefreshPreview();
+        });
+        form.querySelectorAll("[data-reset]").forEach((b) => b.addEventListener("click", () => { const el = $(b.dataset.reset); el.value = el.dataset.fallback; el.dataset.set = "0"; spRefreshPreview(); }));
+        form.querySelectorAll("[data-route]").forEach((b) => b.addEventListener("click", () => {
+          const ta = $("sp_targetRoutes"); const cur = ta.value.split("\n").map((s) => s.trim()).filter(Boolean);
+          if (!cur.includes(b.dataset.route)) cur.push(b.dataset.route); ta.value = cur.join("\n"); spRefreshPreview();
+        }));
+        form.querySelectorAll("[data-upload]").forEach((b) => b.addEventListener("click", () => $("spFile_" + b.dataset.upload).click()));
+        form.querySelectorAll('input[type="file"]').forEach((inp) => inp.addEventListener("change", () => spUpload(inp.id.replace("spFile_", ""), inp)));
+        form.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", async () => {
+          spCollect(); const key = b.dataset.remove; const old = spEdit[key]; spEdit[key] = null;
+          if (old && spUploaded.has(old.publicId) && !spSavedIds.has(old.publicId)) { await spApi("/upload", { method: "DELETE", body: JSON.stringify({ publicId: old.publicId }) }); spUploaded.delete(old.publicId); }
+          drawSpotlightEditor();
+        }));
+        document.querySelectorAll(".sp-preview-tools [data-width]").forEach((b) => b.addEventListener("click", () => { $("spStage").style.width = b.dataset.width; }));
+        $("spFull").onclick = () => { spCollect(); spFullPreview(spEdit); };
+        $("spBack").onclick = $("spCancel").onclick = async () => { await spDiscardUnsaved(); renderSpotlightPage(); };
+        $("spSave").onclick = (e) => spSave(e.currentTarget.dataset.status);
+        $("spSaveDraft").onclick = (e) => spSave(e.currentTarget.dataset.status);
+      }
+
+      async function spUpload(key, input) {
+        const file = input.files && input.files[0]; if (!file) return;
+        const meta = document.getElementById("spUpMeta_" + key);
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { meta.textContent = "Only JPG, PNG or WebP images are allowed."; meta.style.color = "var(--danger)"; input.value = ""; return; }
+        if (file.size > 5 * 1024 * 1024) { meta.textContent = "Image must be 5 MB or smaller."; meta.style.color = "var(--danger)"; input.value = ""; return; }
+        meta.style.color = ""; meta.textContent = "Uploading…";
+        const fd = new FormData(); fd.append("image", file);
+        try {
+          const res = await fetch(`${API_URL}/spotlight/upload`, { method: "POST", body: fd }); // auth header is added by the global fetch wrapper
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.image) { meta.textContent = data.message || "Upload failed. Please try again."; meta.style.color = "var(--danger)"; input.value = ""; return; }
+          spCollect();
+          const old = spEdit[key];
+          if (old && spUploaded.has(old.publicId) && !spSavedIds.has(old.publicId)) { spApi("/upload", { method: "DELETE", body: JSON.stringify({ publicId: old.publicId }) }); spUploaded.delete(old.publicId); }
+          spEdit[key] = data.image; spUploaded.add(data.image.publicId);
+          drawSpotlightEditor();
+        } catch (e) {
+          meta.textContent = "Upload failed. Check your connection and try again."; meta.style.color = "var(--danger)"; input.value = "";
+        }
+      }
+
+      async function spSave(status) {
+        spCollect();
+        const msg = document.getElementById("spMsg"); const c = spEdit;
+        const reset = document.getElementById("sp_reset"); const btns = document.querySelectorAll(".sp-footer button");
+        const body = { ...c, status, enabled: c.enabled !== false, resetDismissals: !!(reset && reset.checked) };
+        delete body._id; delete body.state; delete body.createdAt; delete body.updatedAt; delete body.__v;
+        msg.innerHTML = ""; btns.forEach((b) => (b.disabled = true));
+        const r = await spApi(c._id ? `/${c._id}` : "", { method: c._id ? "PUT" : "POST", body: JSON.stringify(body) });
+        btns.forEach((b) => (b.disabled = false));
+        if (!r.ok) {
+          const errs = r.data.errors && r.data.errors.length ? r.data.errors : [r.data.message || "Could not save"];
+          msg.innerHTML = `<div class="sp-msg err">${errs.map((e) => `<div>${escapeHtml(e)}</div>`).join("")}</div>`;
+          msg.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          return;
+        }
+        spUploaded = new Set();
+        showToast(status === "published" ? "Saved &amp; published" : "Draft saved");
+        renderSpotlightPage();
+      }
+
+
       let currentPage = "dashboard";
       function loadPage(page) {
         currentPage = page;
@@ -5194,6 +5763,8 @@
         else if (page === "selectedPoem") renderSelectedPoemPage();
         else if (page === "users") renderUsers();
         else if (page === "badges") renderBadgesPage();
+        else if (page === "notifications") renderNotificationsPage();
+        else if (page === "spotlight") renderSpotlightPage();
         else if (page === "feedback") renderInbox("feedback");
         else if (page === "contact") renderInbox("contact");
         else if (page === "settings") renderSettings();
