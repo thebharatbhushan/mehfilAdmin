@@ -2648,6 +2648,7 @@
         <div class="menu-label">Inbox</div>
         <a data-page="feedback" href="#feedback" data-tip="Feedback" data-group="Inbox"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i><span class="nav-label">Feedback</span></a>
         <a data-page="contact" href="#contact" data-tip="Contact Messages" data-group="Inbox"><i class="fa-solid fa-envelope" aria-hidden="true"></i><span class="nav-label">Contact Messages</span></a>
+        <a data-page="subscribers" href="#subscribers" data-tip="Subscribers" data-group="Inbox"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span class="nav-label">Subscribers</span></a>
         <div class="menu-label">System</div>
         <a data-page="settings" href="#settings" data-tip="Settings" data-group="System"><i class="fa-solid fa-gear" aria-hidden="true"></i><span class="nav-label">Settings</span></a>
         </nav>
@@ -2805,40 +2806,120 @@
         return Array.isArray(value) && value.length ? value.join(", ") : "Not added";
       }
 
+      // Lists are fetched one page at a time (server-side search + paging), so the backend never sends everything.
+      const usersView = { page: 1, limit: 20, total: 0, totalPages: 1 };
+      const poemsView = { page: 1, limit: 20, total: 0, totalPages: 1 };
+      let adminStats = null;
+      let pickerUsers = null; // tiny {name, username, email} rows for dropdowns (writer pickers, notifications)
+      let pickerPoems = null; // tiny {title, author} rows for the "selected poem" dropdown
+
       async function loadUsers() {
         try {
-          const response = await fetch(`${API_URL}/users?includeSuspended=1`);
+          const qs = new URLSearchParams({ includeSuspended: "1", page: String(usersView.page), limit: String(usersView.limit) });
+          const term = userSearchTerm.trim();
+          if (term) qs.set("q", term);
+          const response = await fetch(`${API_URL}/users?${qs}`);
           const data = await response.json();
           if (data.success) {
             users = data.users;
+            usersView.total = data.total ?? users.length;
+            usersView.totalPages = data.totalPages || 1;
+            if (usersView.page > usersView.totalPages) { usersView.page = usersView.totalPages; return loadUsers(); }
+            pickerUsers = null; // membership may have changed
           }
         } catch (error) {
           console.log(error);
         }
       }
 
-      // The poems API is paginated (max 100 per request); gather every page in small requests.
-      async function fetchAllPoemsPaged() {
-        const all = [];
-        let page = 1, totalPages = 1;
-        do {
-          const res = await fetch(`${API_URL}/poems?page=${page}&limit=100`);
-          const data = await res.json();
-          if (!data.success || !Array.isArray(data.poems)) break;
-          all.push(...data.poems);
-          totalPages = data.totalPages || 1;
-          page++;
-        } while (page <= totalPages);
-        return all;
-      }
-
       async function loadPoems() {
         try {
-          poems = await fetchAllPoemsPaged();
+          const qs = new URLSearchParams({ page: String(poemsView.page), limit: String(poemsView.limit), sort: poemSort });
+          if (poemStatusFilter !== "all") qs.set("status", poemStatusFilter);
+          const term = poemSearchTerm.trim();
+          if (term) qs.set("q", term);
+          const res = await fetch(`${API_URL}/poems?${qs}`);
+          const data = await res.json();
+          if (data.success && Array.isArray(data.poems)) {
+            poems = data.poems;
+            poemsView.total = data.total ?? poems.length;
+            poemsView.totalPages = data.totalPages || 1;
+            if (poemsView.page > poemsView.totalPages) { poemsView.page = poemsView.totalPages; return loadPoems(); }
+            pickerPoems = null;
+          }
         } catch (error) {
           console.log(error);
         }
       }
+
+      async function loadStats() {
+        try {
+          const res = await fetch(`${API_URL}/stats`);
+          const data = await res.json();
+          if (data.success) adminStats = data;
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      async function ensurePickerUsers() {
+        if (!pickerUsers) {
+          try {
+            const res = await fetch(`${API_URL}/users?minimal=1&includeSuspended=1`);
+            const data = await res.json();
+            pickerUsers = data.success ? data.users : [];
+          } catch (error) { pickerUsers = []; }
+        }
+        return pickerUsers;
+      }
+
+      async function ensurePickerPoems() {
+        if (!pickerPoems) {
+          try {
+            const res = await fetch(`${API_URL}/poems?minimal=1`);
+            const data = await res.json();
+            pickerPoems = data.success ? data.poems : [];
+          } catch (error) { pickerPoems = []; }
+        }
+        return pickerPoems;
+      }
+
+      // Shared pager: "Prev  Page 2 of 9 · 173 total  Next". Calls onGo(newPage).
+      function pagerHtml(view, id) {
+        if (view.totalPages <= 1 && view.total <= view.limit) return `<div class="pager-info" style="padding:10px 4px;color:var(--text-2);font-size:13px">${view.total} total</div>`;
+        return `<div class="pager" style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:14px 0">
+          <button class="icon-btn view" data-pager="${id}" data-go="${view.page - 1}" ${view.page <= 1 ? "disabled" : ""}><i class="fa-solid fa-chevron-left"></i> Prev</button>
+          <span style="font-size:13px;color:var(--text-2)">Page ${view.page} of ${view.totalPages} · ${view.total} total</span>
+          <button class="icon-btn view" data-pager="${id}" data-go="${view.page + 1}" ${view.page >= view.totalPages ? "disabled" : ""}>Next <i class="fa-solid fa-chevron-right"></i></button>
+        </div>`;
+      }
+      function bindPager(id, view, reload) {
+        document.querySelectorAll(`[data-pager="${id}"]`).forEach((btn) =>
+          btn.addEventListener("click", () => {
+            const target = Number(btn.dataset.go);
+            if (target < 1 || target > view.totalPages) return;
+            view.page = target;
+            reload();
+          }));
+      }
+      // Debounced search that keeps typing focus after the list redraws.
+      function bindSearch(inputId, getTerm, setTerm, view, reload) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        let timer;
+        input.addEventListener("input", (e) => {
+          setTerm(e.target.value);
+          clearTimeout(timer);
+          timer = setTimeout(async () => {
+            view.page = 1;
+            await reload();
+            const again = document.getElementById(inputId);
+            if (again) { again.focus(); const n = again.value.length; again.setSelectionRange(n, n); }
+          }, 350);
+        });
+      }
+      async function reloadPoemsPage() { await loadPoems(); renderPoems(); }
+      async function reloadUsersPage() { await loadUsers(); renderUsers(); }
 
       function showToast(message) {
         const toast = document.createElement("div");
@@ -2879,16 +2960,17 @@
 
       // ======================== DASHBOARD (restyled; same data, same calculations) ========================
       function renderDashboard() {
-        const totalPoems = poems.length;
-        const totalUsers = users.length;
-        const pendingPoems = poems.filter((p) => poemStatus(p) === "unpublished").length;
-        const rejectedPoems = poems.filter((p) => poemStatus(p) === "rejected").length;
+        const st = adminStats || { totalPoems: 0, unpublished: 0, rejected: 0, totalViews: 0, totalUsers: 0, suspendedUsers: 0, recent: [], pending: [], topViewed: [] };
+        const totalPoems = st.totalPoems;
+        const totalUsers = st.totalUsers;
+        const pendingPoems = st.unpublished;
+        const rejectedPoems = st.rejected;
         const approvedPoems = totalPoems - pendingPoems - rejectedPoems;
-        const suspendedUsers = users.filter((u) => u.suspended).length;
-        const totalViews = poems.reduce((sum, p) => sum + (Number(p.views) || 0), 0);
-        const recentPoems = poems.slice(0, 5);
-        const pendingList = poems.filter((p) => poemStatus(p) === "unpublished").slice(0, 5);
-        const topViewed = [...poems].filter((p) => Number(p.views) > 0).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+        const suspendedUsers = st.suspendedUsers;
+        const totalViews = st.totalViews;
+        const recentPoems = st.recent;
+        const pendingList = st.pending;
+        const topViewed = st.topViewed;
         const maxViews = topViewed.length ? Number(topViewed[0].views) : 1;
         const initial = (name) => (String(name).trim().charAt(0) || "?").toUpperCase();
         const pct = (n) => (totalPoems ? Math.round((n / totalPoems) * 100) : 0);
@@ -3000,6 +3082,7 @@
             if (el.dataset.goto === "poems" && el.dataset.filter) {
               poemStatusFilter = el.dataset.filter;
               poemSearchTerm = "";
+              poemsView.page = 1;
             }
             loadPage(el.dataset.goto);
           }),
@@ -3053,7 +3136,8 @@
 
       // Upgraded view poem function with beautiful poem card modal instead of basic alert
       function enhancedViewPoem(poemId) {
-        const poem = poems.find((p) => p._id === poemId);
+        const poem = poems.find((p) => p._id === poemId) ||
+          [...(adminStats?.recent || []), ...(adminStats?.pending || []), ...(adminStats?.topViewed || [])].find((p) => p._id === poemId);
         if (!poem) return;
         const fullName = escapeHtml(
           authorName(poem),
@@ -3108,28 +3192,14 @@
       }
 
       function renderPoems() {
-        let filteredPoems = poems.filter((p) => {
-          const matchesSearch =
-            p.title.toLowerCase().includes(poemSearchTerm.toLowerCase()) ||
-            authorFirst(p)
-              .toLowerCase()
-              .includes(poemSearchTerm.toLowerCase()) ||
-            authorLast(p)
-              .toLowerCase()
-              .includes(poemSearchTerm.toLowerCase());
-          const matchesStatus =
-            poemStatusFilter === "all" || poemStatus(p) === poemStatusFilter;
-          return matchesSearch && matchesStatus;
-        });
-        if (poemSort === "views")
-          filteredPoems = [...filteredPoems].sort((a, b) => (b.views || 0) - (a.views || 0));
+        const filteredPoems = poems; // already searched, filtered, sorted and paged by the server
 
         const html = `
                   <div class="page-header"><h1><i class="fa-regular fa-message"></i> Poems Management</h1>
                   <button class="btn-primary" id="addPoemDummyBtn" style="background:var(--primary-700); cursor:not-allowed;" disabled><i class="fa-solid fa-plus"></i> Add Poem (via poets)</button>
                   </div>
                   <div class="search-box">
-                      <input type="text" id="poemSearch" placeholder="Search by title or author…" value="${escapeHtml(poemSearchTerm)}">
+                      <input type="text" id="poemSearch" placeholder="Search poems by title, category or poet name…" value="${escapeHtml(poemSearchTerm)}">
                       <select id="poemStatusFilter">
                           <option value="all" ${poemStatusFilter === "all" ? "selected" : ""}>All status</option>
                           <option value="published" ${poemStatusFilter === "published" ? "selected" : ""}>Published</option>
@@ -3182,26 +3252,25 @@
                       </tbody>
                    </table>
                   </div>
+                  ${pagerHtml(poemsView, "poems")}
               `;
         document.getElementById("mainPanel").innerHTML = html;
 
-        document
-          .getElementById("poemSearch")
-          ?.addEventListener("input", (e) => {
-            poemSearchTerm = e.target.value;
-            renderPoems();
-          });
+        bindSearch("poemSearch", () => poemSearchTerm, (v) => { poemSearchTerm = v; }, poemsView, reloadPoemsPage);
+        bindPager("poems", poemsView, reloadPoemsPage);
         document
           .getElementById("poemStatusFilter")
           ?.addEventListener("change", (e) => {
             poemStatusFilter = e.target.value;
-            renderPoems();
+            poemsView.page = 1;
+            reloadPoemsPage();
           });
         document
           .getElementById("poemSortSelect")
           ?.addEventListener("change", (e) => {
             poemSort = e.target.value;
-            renderPoems();
+            poemsView.page = 1;
+            reloadPoemsPage();
           });
 
         document.querySelectorAll("[data-status-change]").forEach((select) => {
@@ -3226,13 +3295,11 @@
             });
             const data = await res.json().catch(() => ({}));
             if (res.ok && data.success) {
-              poem.status = newStatus;
-              poem.moderationReason = data.reason || "";
               showToast(newStatus === "published" ? "Poem is public again — author notified" : `Poem ${newStatus} — author notified`);
             } else {
               showToast(escapeHtml(data.message || "Could not change status"));
             }
-            renderPoems();
+            reloadPoemsPage();
           });
         });
 
@@ -3575,15 +3642,9 @@
       }
 
       function renderUsers() {
-        let filteredUsers = users.filter(
-          (u) =>
-            (u.firstName + " " + u.lastName)
-              .toLowerCase()
-              .includes(userSearchTerm.toLowerCase()) ||
-            u.email.toLowerCase().includes(userSearchTerm.toLowerCase()),
-        );
+        const filteredUsers = users; // already searched and paged by the server
         const html = `<div class="page-header"><h1>Users Management</h1></div>
-              <div class="search-box"><input type="text" id="userSearch" placeholder="Search users…" value="${escapeHtml(userSearchTerm)}"></div>
+              <div class="search-box"><input type="text" id="userSearch" placeholder="Search users by name, username or email…" value="${escapeHtml(userSearchTerm)}"></div>
               <div class="glass-table"><table><thead><tr><th>User</th><th>Status</th><th>Actions</th></tr></thead><tbody>
                   ${filteredUsers
                     .map((user) => {
@@ -3618,15 +3679,12 @@
                     })
                     .join("")}
                   ${filteredUsers.length === 0 ? '<tr><td colspan="3"><div class="empty-state"><span class="es-icon"><i class="fa-solid fa-user-slash"></i></span><b>No users found</b>Try a different search.</div></td></tr>' : ""}
-              </tbody></table></div>`;
+              </tbody></table></div>
+              ${pagerHtml(usersView, "users")}`;
         document.getElementById("mainPanel").innerHTML = html;
 
-        document
-          .getElementById("userSearch")
-          ?.addEventListener("input", (e) => {
-            userSearchTerm = e.target.value;
-            renderUsers();
-          });
+        bindSearch("userSearch", () => userSearchTerm, (v) => { userSearchTerm = v; }, usersView, reloadUsersPage);
+        bindPager("users", usersView, reloadUsersPage);
 
         document.querySelectorAll("[data-action='viewUser']").forEach((btn) => {
           btn.addEventListener("click", () => {
@@ -3763,7 +3821,7 @@
         const select = document.getElementById("selectedPoemSelect");
         const preview = document.getElementById("selectedPoemPreview");
         const current = document.getElementById("selectedPoemCurrent");
-        const eligiblePoems = poems.filter(p => p && p._id);
+        const eligiblePoems = (await ensurePickerPoems()).filter(p => p && p._id);
         eligiblePoems.forEach(p => {
           const author = `${p.author?.firstName || ""} ${p.author?.lastName || ""}`.trim() || "अज्ञात रचनाकार";
           const option = document.createElement("option");
@@ -3881,7 +3939,7 @@
             <strong style="color:var(--text);">Automatic schedule:</strong> सप्ताह <strong>सोमवार</strong> से शुरू होगा और भारतीय समय (IST) के अनुसार <strong>रात 12:00 बजे</strong> नया रचनाकार live होगा। Admin selection सिर्फ उस specific week के लिए लागू होगा। Reset करने पर उस सप्ताह का automatic selection वापस आ जाएगा।
           </div>`;
 
-        const eligibleUsers = users.filter(u => u && u._id);
+        const eligibleUsers = (await ensurePickerUsers()).filter(u => u && u._id);
         const userOptions = '<option value="">Automatic (system will choose)</option>' + eligibleUsers.map(u => `<option value="${escapeHtml(u._id)}">${escapeHtml(`${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email || "User")}</option>`).join("");
 
         const setup = async (prefix, weekStart, label) => {
@@ -3983,7 +4041,7 @@
             </div>
           </div>`;
 
-        const options = '<option value="">— कोई चयन नहीं (default) —</option>' + users.filter(u => u && u._id).map(u => `<option value="${escapeHtml(u._id)}">${escapeHtml(`${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email || "User")}</option>`).join("");
+        const options = '<option value="">— कोई चयन नहीं (default) —</option>' + (await ensurePickerUsers()).filter(u => u && u._id).map(u => `<option value="${escapeHtml(u._id)}">${escapeHtml(`${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email || "User")}</option>`).join("");
 
         const setup = async (prefix, date, label) => {
           document.getElementById(`${prefix}Form`).innerHTML = `
@@ -4499,6 +4557,67 @@
       function inboxUser(item) {
         const u = item.userId;
         return u && typeof u === "object" ? (u.username ? "@" + u.username : ((u.firstName || "") + " " + (u.lastName || "")).trim()) : "";
+      }
+
+      // ======================== NEWSLETTER SUBSCRIBERS ========================
+      const subscribersState = { items: [], summary: { total: 0, active: 0 }, error: "" };
+
+      async function renderSubscribers() {
+        const panel = document.getElementById("mainPanel");
+        panel.innerHTML = `<div class="page-header"><h1>Subscribers</h1></div><div class="empty-state"><span class="es-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span><b>Loading…</b></div>`;
+        const st = subscribersState;
+        try {
+          const res = await adminFetch("/subscribers");
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) throw new Error(data.message || "Could not load");
+          st.items = data.items;
+          st.summary = data.summary;
+          st.error = "";
+        } catch (err) {
+          st.items = [];
+          st.error = err.message || "Could not load";
+        }
+        const rows = st.items.map((it) => `<tr>
+            <td>${escapeHtml(formatDateTime(it.createdAt))}</td>
+            <td>${escapeHtml(it.email)}</td>
+            <td><span class="status-badge status-${it.status === "active" ? "resolved" : "read"}">${escapeHtml(it.status)}</span></td>
+            <td><button class="icon-btn delete" data-sub-del="${it._id}" title="Delete"><i class="fa-solid fa-trash"></i> Delete</button></td>
+          </tr>`).join("");
+        panel.innerHTML = `<div class="page-header"><h1>Subscribers</h1></div>
+          <div class="inbox-tabs">
+            <span class="inbox-tab active">Active (${st.summary.active})</span>
+            <span class="inbox-tab">Total (${st.summary.total})</span>
+            <button class="icon-btn view" id="subCopy"><i class="fa-solid fa-copy"></i> Copy emails</button>
+            <button class="icon-btn view" id="subCsv"><i class="fa-solid fa-file-arrow-down"></i> Download CSV</button>
+          </div>
+          ${st.error ? `<div class="glass-table" style="color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(st.error)} <button class="icon-btn view" id="subRetry" style="margin-left:10px">Retry</button></div>` : ""}
+          <div class="glass-table inbox-wrap"><table><thead><tr><th>Date</th><th>Email</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="4" style="text-align:center">No subscribers yet</td></tr>`}</tbody></table></div>`;
+
+        const activeEmails = () => st.items.filter((x) => x.status === "active").map((x) => x.email);
+        document.getElementById("subRetry")?.addEventListener("click", renderSubscribers);
+        document.getElementById("subCopy")?.addEventListener("click", async () => {
+          try { await navigator.clipboard.writeText(activeEmails().join(", ")); showToast("Emails copied"); }
+          catch { showToast("Could not copy"); }
+        });
+        document.getElementById("subCsv")?.addEventListener("click", () => {
+          const csv = "email,status,subscribed_at\n" + st.items.map((x) => `${x.email},${x.status},${x.createdAt || ""}`).join("\n");
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+          a.download = "mehfil-subscribers.csv";
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+        document.querySelectorAll("[data-sub-del]").forEach((btn) => btn.addEventListener("click", async () => {
+          if (!confirm("Delete this subscriber permanently?")) return;
+          try {
+            const res = await adminFetch(`/subscribers/${btn.dataset.subDel}`, { method: "DELETE" });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) return showToast(escapeHtml(data.message || "Delete failed"));
+            showToast("Deleted");
+            renderSubscribers();
+          } catch (err) { showToast(escapeHtml(err.message || "Something went wrong")); }
+        }));
       }
 
       async function renderInbox(kind) {
@@ -5306,6 +5425,7 @@
           const h = await hRes.json().catch(() => ({}));
           if (!tRes.ok || !t.success) throw new Error(t.message || "Could not load");
           notifTypes = t.types; notifPolicyLinks = t.policyLinks || {};
+          await ensurePickerUsers();
           drawNotificationsPage(h.items || []);
         } catch (err) {
           panel.innerHTML = `<div class="page-header"><h1>Notifications</h1></div><div class="glass-table" style="color:var(--danger)">⚠ ${escapeHtml(err.message || "Could not load")} <button class="icon-btn view" id="notifRetry" style="margin-left:10px">Retry</button></div>`;
@@ -5315,7 +5435,7 @@
 
       function drawNotificationsPage(history) {
         const typeOpts = notifTypes.map((t) => `<option value="${t.key}">${escapeHtml(t.label)}</option>`).join("");
-        const userOpts = users.filter((u) => !u.suspended).map((u) => `<option value="${u._id}">${escapeHtml(userDisplayName(u))}${u.username ? " (@" + escapeHtml(u.username) + ")" : ""}</option>`).join("");
+        const userOpts = (pickerUsers || []).filter((u) => !u.suspended).map((u) => `<option value="${u._id}">${escapeHtml(userDisplayName(u))}${u.username ? " (@" + escapeHtml(u.username) + ")" : ""}</option>`).join("");
         const audLabel = (b) => b.audience === "all" ? "All members" : b.audience === "writers" ? "Writers" : "Member: " + escapeHtml(b.targetUserId ? `${b.targetUserId.firstName || ""} ${b.targetUserId.lastName || ""}`.trim() || b.targetUserId.username || "—" : "—");
         const rows = history.map((b) => `<tr>
             <td style="white-space:nowrap;font-size:.82rem;color:var(--text-2)">${escapeHtml(formatDateTime(b.createdAt))}</td>
@@ -5753,20 +5873,21 @@
           const mp = document.getElementById("mainPanel");
           if (mp) mp.innerHTML = `<div class="empty-state"><span class="es-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span><b>Loading…</b></div>`;
         }
-        if (page === "dashboard") renderDashboard();
-        else if (page === "poems") renderPoems();
+        if (page === "dashboard") loadStats().then(() => { if (currentPage === "dashboard") renderDashboard(); });
+        else if (page === "poems") reloadPoemsPage();
         else if (page === "sher") renderSherPage();
         else if (page === "lafz") renderLafzPage();
         else if (page === "dictionary") renderDictionaryPage();
         else if (page === "weeklyWriter") renderWeeklyWriterPage();
         else if (page === "thursdayWriter") renderThursdayWriterPage();
         else if (page === "selectedPoem") renderSelectedPoemPage();
-        else if (page === "users") renderUsers();
+        else if (page === "users") reloadUsersPage();
         else if (page === "badges") renderBadgesPage();
         else if (page === "notifications") renderNotificationsPage();
         else if (page === "spotlight") renderSpotlightPage();
         else if (page === "feedback") renderInbox("feedback");
         else if (page === "contact") renderInbox("contact");
+        else if (page === "subscribers") renderSubscribers();
         else if (page === "settings") renderSettings();
         document.querySelectorAll(".menu a").forEach((link) => {
           if (link.getAttribute("data-page") === page)
@@ -5776,8 +5897,6 @@
       }
 
       async function startAdminPanel() {
-        await loadUsers();
-        await loadPoems();
         loadPage("dashboard");
       }
 
