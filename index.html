@@ -2846,6 +2846,7 @@
             poemsView.totalPages = data.totalPages || 1;
             if (poemsView.page > poemsView.totalPages) { poemsView.page = poemsView.totalPages; return loadPoems(); }
             pickerPoems = null;
+            pickerPoemsLines = null;
           }
         } catch (error) {
           console.log(error);
@@ -2863,7 +2864,7 @@
       }
 
       async function ensurePickerUsers() {
-        if (!pickerUsers) {
+        if (!pickerUsers || !pickerUsers.length) {
           try {
             const res = await fetch(`${API_URL}/users?minimal=1&includeSuspended=1`);
             const data = await res.json();
@@ -2873,8 +2874,35 @@
         return pickerUsers;
       }
 
-      async function ensurePickerPoems() {
-        if (!pickerPoems) {
+      let pickerPoemsLines = null;
+      // Poems for the "Sher of the day" picker. Fast path: tiny rows (title, author, first two lines). If that answer is
+      // missing or has no lines (e.g. an older backend), fall back to reading the poems page by page. Failures are never cached.
+      async function fetchPoemsForSher() {
+        try {
+          const res = await fetch(`${API_URL}/poems?minimal=1&withLines=1`);
+          const data = await res.json();
+          if (data.success && Array.isArray(data.poems) && data.poems.length && data.poems.some((p) => typeof p.body === "string")) return data.poems;
+        } catch (error) { console.log(error); }
+        const all = [];
+        try {
+          let page = 1, totalPages = 1;
+          do {
+            const res = await fetch(`${API_URL}/poems?page=${page}&limit=100`);
+            const data = await res.json();
+            if (!data.success || !Array.isArray(data.poems)) break;
+            all.push(...data.poems);
+            totalPages = data.totalPages || 1;
+            page++;
+          } while (page <= totalPages && page <= 50);
+        } catch (error) { console.log(error); }
+        return all;
+      }
+      async function ensurePickerPoems(withLines = false) {
+        if (withLines) {
+          if (!pickerPoemsLines || !pickerPoemsLines.length) pickerPoemsLines = await fetchPoemsForSher();
+          return pickerPoemsLines;
+        }
+        if (!pickerPoems || !pickerPoems.length) {
           try {
             const res = await fetch(`${API_URL}/poems?minimal=1`);
             const data = await res.json();
@@ -4168,7 +4196,7 @@
 
         let poemsForSher = [];
         try {
-          poemsForSher = await fetchAllPoemsPaged();
+          poemsForSher = await ensurePickerPoems(true); // tiny rows: title, author, first two lines
         } catch (error) {
           console.error(error);
         }
@@ -4226,7 +4254,7 @@
           const tag = document.getElementById(`${prefix}Tag`);
           const status = document.getElementById(`${prefix}Status`);
 
-          poemSelect.innerHTML = '<option value="">Select a poem...</option>' + poemsForSher.map(p => {
+          poemSelect.innerHTML = `<option value="">${poemsForSher.length ? "Select a poem..." : "Poems could not be loaded — refresh the page or log in again"}</option>` + poemsForSher.map(p => {
             const author = getAuthorName(p);
             const lines = getPoemLines(p);
             const disabled = lines.length < 2 ? " disabled" : "";
