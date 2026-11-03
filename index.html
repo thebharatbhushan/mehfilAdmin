@@ -3821,6 +3821,51 @@
         });
       }
 
+      // ---- Live on website: shows what visitors currently see on the homepage (incl. automatic random pick) ----
+      const PUBLIC_API_URL = API_URL.replace(/\/api\/admin\/?$/, "/api");
+      const liveBox = (title, inner) => `<div style="padding:18px 20px;border:1px solid var(--border-strong);border-radius:16px;background:var(--surface-2);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><span style="background:var(--border);color:var(--primary-700);padding:6px 12px;border-radius:30px;font-size:12px;font-weight:700;"><i class="fa-solid fa-globe"></i> WEBSITE PAR ABHI LIVE</span><strong style="color:var(--text);">${title}</strong></div>${inner}</div>`;
+
+      async function refreshSherLive() {
+        const box = document.getElementById("sherLiveNow");
+        if (!box) return;
+        box.innerHTML = liveBox("आज का शेर", `<div style="color:var(--text-2);">लोड हो रहा है…</div>`);
+        try {
+          const response = await fetch(`${PUBLIC_API_URL}/daily/sher?date=${encodeURIComponent(localDateKey())}`, { cache: "no-store" });
+          const data = await response.json();
+          const sher = data.success && data.configured ? data.sher : null;
+          if (!sher) { box.innerHTML = liveBox("आज का शेर", `<div style="color:var(--text-2);">अभी backend से कोई शेर नहीं आ रहा (website अपना default दिखाएगी)।</div>`); return; }
+          const mode = sher.sourceType === "manual" ? "Admin ने custom लिखा" : (sher.dateKey && data.sher.poemId ? "Poem से" : "");
+          box.innerHTML = liveBox("आज का शेर", `
+            <div style="font-family:Georgia,serif;font-size:18px;line-height:1.8;color:var(--text);">${(sher.lines || []).map(escapeHtml).join("<br>")}</div>
+            <div style="margin-top:8px;color:var(--text-2);">— ${escapeHtml(sher.writerName || "")}${sher.tag ? ` · ${escapeHtml(sher.tag)}` : ""}</div>
+            <div style="margin-top:6px;color:var(--text-2);font-size:12px;">${mode}। नीचे “आज” card में आप इसे बदल सकते हैं; Save के बाद यही live दिखेगा।</div>`);
+        } catch (error) {
+          box.innerHTML = liveBox("आज का शेर", `<div style="color:var(--danger);">Live शेर load नहीं हो पाया।</div>`);
+        }
+      }
+
+      async function refreshSelectedPoemLive() {
+        const box = document.getElementById("selectedPoemLiveNow");
+        if (!box) return;
+        box.innerHTML = liveBox("चयनित रचना", `<div style="color:var(--text-2);">लोड हो रहा है…</div>`);
+        try {
+          const response = await fetch(`${PUBLIC_API_URL}/auth/selected-poem`, { cache: "no-store" });
+          const data = await response.json();
+          const poem = data.success ? data.poem : null;
+          if (!poem) { box.innerHTML = liveBox("चयनित रचना", `<div style="color:var(--text-2);">अभी website पर कोई चयनित रचना नहीं दिख रही।</div>`); return; }
+          const author = `${poem.author?.firstName || ""} ${poem.author?.lastName || ""}`.trim() || "अज्ञात रचनाकार";
+          const lines = (poem.body || "").split(/\r?\n/).filter(Boolean).slice(0, 4).map(escapeHtml).join("<br>");
+          box.innerHTML = liveBox("चयनित रचना", `
+            <div style="font-weight:800;color:var(--text);font-size:18px;">${escapeHtml(poem.title || "बिना शीर्षक")}</div>
+            <div style="color:var(--text-2);margin-top:4px;">${escapeHtml(author)}</div>
+            <div style="margin-top:10px;font-family:Georgia,serif;line-height:1.8;color:var(--text);">${lines}</div>
+            <div style="margin-top:8px;color:var(--text-2);font-size:12px;">अगर आपने आज के लिए कुछ select नहीं किया, तो यह automatic random रचना है। नीचे से चुनकर बदल सकते हैं।</div>`);
+        } catch (error) {
+          box.innerHTML = liveBox("चयनित रचना", `<div style="color:var(--danger);">Live रचना load नहीं हो पाई।</div>`);
+        }
+      }
+
       async function renderSelectedPoemPage() {
         document.getElementById("mainPanel").innerHTML = `
           <div class="page-header">
@@ -3829,6 +3874,7 @@
               <p style="color:var(--text-2);margin-top:8px;">यह फीचर Featured Poem से अलग है। यहाँ आप homepage के “चयनित रचना” section के लिए एक अलग रचना चुन सकते हैं।</p>
             </div>
           </div>
+          <div id="selectedPoemLiveNow" style="max-width:900px;margin-bottom:20px;"></div>
           <div class="glass-table" style="padding:26px;max-width:900px;">
             <div id="selectedPoemCurrent" style="margin-bottom:24px;"></div>
             <label style="display:block;font-weight:700;margin-bottom:8px;color:var(--text);">रचना चुनें</label>
@@ -3846,6 +3892,7 @@
             <p style="margin-top:18px;color:var(--text-2);font-size:13px;line-height:1.7;">Homepage पर केवल यही अलग चयन दिखेगा। Existing Featured Poems/Featured Poem functionality पर इसका कोई असर नहीं पड़ेगा।</p>
           </div>`;
 
+        refreshSelectedPoemLive();
         const select = document.getElementById("selectedPoemSelect");
         const preview = document.getElementById("selectedPoemPreview");
         const current = document.getElementById("selectedPoemCurrent");
@@ -4174,6 +4221,7 @@
               <p style="color:var(--text-2);margin-top:8px;">आज और कल का शेर पहले से set करें। रात 12:00 बजे अगला शेर अपने आप live हो जाएगा।</p>
             </div>
           </div>
+          <div id="sherLiveNow" style="margin-bottom:24px;"></div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;align-items:start;">
             <div class="glass-table" style="padding:26px;">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;">
@@ -4194,6 +4242,7 @@
             <strong style="color:var(--text);">कैसे काम करेगा:</strong> आज वाला शेर आज दिखेगा। कल वाला पहले से save रहेगा और local रात 12:00 बजे homepage पर अपने आप आज का शेर बन जाएगा। अगर किसी दिन custom शेर set नहीं है, तो existing automatic Sher of the Day fallback चलता रहेगा।
           </div>`;
 
+        refreshSherLive();
         let poemsForSher = [];
         try {
           poemsForSher = await ensurePickerPoems(true); // tiny rows: title, author, first two lines
@@ -4344,6 +4393,7 @@
               if (!data.success) throw new Error(data.message || "Save failed");
               setStatus(`${label} का शेर successfully save हो गया।`, true);
               showToast(`${label} का शेर save हो गया`);
+              refreshSherLive();
             } catch (error) {
               console.error(error);
               setStatus(error.message || "Save failed");
@@ -4362,6 +4412,7 @@
               setMode("poem");
               setStatus(`${label} automatic mode पर reset हो गया।`, true);
               showToast(`${label} का शेर automatic mode पर reset हो गया`);
+              refreshSherLive();
             } catch (error) {
               console.error(error);
               setStatus(error.message || "Reset failed");
