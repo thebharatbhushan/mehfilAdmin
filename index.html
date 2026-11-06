@@ -2634,6 +2634,7 @@
         <div class="menu-label">Daily content</div>
         <a data-page="sher" href="#sher" data-tip="आज का शेर" data-group="Daily content"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i><span class="nav-label">आज का शेर</span></a>
         <a data-page="lafz" href="#lafz" data-tip="आज का लफ़्ज़" data-group="Daily content"><i class="fa-solid fa-language" aria-hidden="true"></i><span class="nav-label">आज का लफ़्ज़</span></a>
+        <a data-page="adhuraKavya" href="#adhuraKavya" data-tip="आज का अधूरा काव्य" data-group="Daily content"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span class="nav-label">आज का अधूरा काव्य</span></a>
         <a data-page="dictionary" href="#dictionary" data-tip="शब्दकोश" data-group="Daily content"><i class="fa-solid fa-book" aria-hidden="true"></i><span class="nav-label">शब्दकोश</span></a>
         <a data-page="weeklyWriter" href="#weeklyWriter" data-tip="सप्ताह के रचनाकार" data-group="Daily content"><i class="fa-solid fa-crown" aria-hidden="true"></i><span class="nav-label">सप्ताह के रचनाकार</span></a>
         <a data-page="thursdayWriter" href="#thursdayWriter" data-tip="गुरुवार का रचनाकार" data-group="Daily content"><i class="fa-solid fa-star" aria-hidden="true"></i><span class="nav-label">गुरुवार का रचनाकार</span></a>
@@ -4583,6 +4584,185 @@
         ]);
       }
 
+      async function renderAdhuraKavyaPage() {
+        const panel = document.getElementById("mainPanel");
+        let dateKey = getLocalDateKey(0);
+        const inputStyle = "width:100%;padding:13px 15px;border:1px solid var(--border);border-radius:14px;font-size:15px;box-sizing:border-box;";
+        const ghostBtn = "background:transparent;color:var(--primary-700);border:1px solid var(--border-strong);padding:10px 16px;border-radius:30px;font-weight:600;cursor:pointer;";
+
+        panel.innerHTML = `
+          <div class="page-header">
+            <div>
+              <h1>आज का अधूरा काव्य</h1>
+              <p style="color:var(--text-2);margin-top:8px;">काव्य की पहली पंक्ति set करें। लॉगिन किए हुए सदस्य अगली पंक्ति लिखकर भेजेंगे, और आप सबसे अच्छी पंक्ति चुनेंगे। चुनी गई पंक्ति अगले दिन homepage पर &ldquo;पिछला काव्य&rdquo; में रचनाकार के नाम और प्रोफ़ाइल के साथ दिखेगी।</p>
+            </div>
+          </div>
+
+          <div class="glass-table" style="padding:26px;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+              <label for="akDate" style="font-weight:700;color:var(--text);">तारीख़</label>
+              <input id="akDate" type="date" value="${dateKey}" style="padding:10px 14px;border:1px solid var(--border);border-radius:12px;font-size:15px;" />
+              <span id="akDateLabel" style="color:var(--text-2);font-size:13px;">${formatLafzDate(dateKey)}</span>
+            </div>
+            <label for="akFirst" style="display:block;font-weight:700;margin-bottom:7px;color:var(--text);">पहली पंक्ति</label>
+            <textarea id="akFirst" rows="2" maxlength="300" placeholder="जैसे — ख़ामोशी भी अब सवाल पूछती है मुझसे…" style="${inputStyle}resize:vertical;"></textarea>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+              <button type="button" class="btn-primary" id="akSave"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+              <button type="button" id="akReset" style="${ghostBtn}"><i class="fa-solid fa-rotate-left"></i> Reset (पंक्ति और सभी प्रविष्टियाँ हटाएँ)</button>
+            </div>
+            <div id="akStatus" style="margin-top:12px;color:var(--text-2);font-size:13px;min-height:18px;"></div>
+          </div>
+
+          <div class="glass-table" style="padding:26px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+              <h2 style="font-family:Georgia,serif;color:var(--text);margin:0;">सदस्यों की पंक्तियाँ <span id="akCount" style="font-size:14px;color:var(--text-2);font-weight:400;"></span></h2>
+              <button type="button" id="akRefresh" style="${ghostBtn}"><i class="fa-solid fa-rotate"></i> Refresh</button>
+            </div>
+            <div id="akSelectedBox" style="margin:14px 0;"></div>
+            <div id="akList"></div>
+          </div>`;
+
+        const el = (id) => document.getElementById(id);
+        const setStatus = (message, success = false) => {
+          const node = el("akStatus");
+          node.textContent = message;
+          node.style.color = success ? "var(--success)" : "var(--primary-700)";
+        };
+        const authorName = (a) => (a ? (`${a.firstName || ""} ${a.lastName || ""}`.trim() || a.username || "सदस्य") : "हटाया गया सदस्य");
+        const avatar = (a) => (a && a.profilePic ? `<img src="${escapeHtml(a.profilePic)}" alt="" width="38" height="38" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;" />` : `<span style="width:38px;height:38px;border-radius:50%;background:var(--border);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary-700);"><i class="fa-solid fa-user"></i></span>`);
+        const readJson = async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) throw new Error(data.message || "Request failed");
+          return data;
+        };
+
+        const loadSubmissions = async () => {
+          const list = el("akList");
+          list.innerHTML = `<div style="color:var(--text-2);padding:12px 0;">Loading…</div>`;
+          try {
+            const data = await readJson(await fetch(`${API_URL}/adhura-kavya/submissions?date=${encodeURIComponent(dateKey)}`));
+            const subs = data.submissions || [];
+            el("akCount").textContent = `(${subs.length})`;
+            const selected = subs.find((s) => s.selected);
+            el("akSelectedBox").innerHTML = selected
+              ? `<div style="padding:14px 16px;border:1px solid var(--success);border-radius:14px;background:var(--surface-2);">
+                   <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:6px;">चुनी गई पंक्ति</div>
+                   <div style="font-family:Georgia,serif;font-size:17px;color:var(--text);line-height:1.7;">${escapeHtml(data.firstLine)}<br>${escapeHtml(selected.line)}</div>
+                   <div style="margin-top:8px;color:var(--text-2);font-size:13px;">— ${escapeHtml(authorName(selected.author))}</div>
+                   <button type="button" id="akUnselect" style="${ghostBtn}margin-top:12px;"><i class="fa-solid fa-xmark"></i> चयन हटाएँ (प्रविष्टियाँ फिर खुल जाएँगी)</button>
+                 </div>`
+              : (data.firstLine ? `<div style="color:var(--text-2);font-size:13px;">अभी कोई पंक्ति चुनी नहीं गई है।</div>` : "");
+            if (!data.firstLine) {
+              list.innerHTML = `<div style="color:var(--text-2);padding:12px 0;">इस तारीख़ के लिए पहले पहली पंक्ति Save करें।</div>`;
+            } else if (!subs.length) {
+              list.innerHTML = `<div style="color:var(--text-2);padding:12px 0;">अभी तक किसी ने पंक्ति नहीं भेजी है।</div>`;
+            } else {
+              list.innerHTML = subs.map((s) => `
+                <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--border);">
+                  ${avatar(s.author)}
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;color:var(--text);">${escapeHtml(authorName(s.author))}${s.author && s.author.username ? ` <span style="font-weight:400;color:var(--text-2);font-size:13px;">@${escapeHtml(s.author.username)}</span>` : ""}${s.selected ? ` <span style="background:var(--success);color:#fff;padding:2px 10px;border-radius:30px;font-size:11px;font-weight:700;margin-left:6px;">SELECTED</span>` : ""}</div>
+                    <div style="font-family:Georgia,serif;font-size:16px;line-height:1.7;margin:6px 0;color:var(--text);overflow-wrap:anywhere;">${escapeHtml(s.line)}</div>
+                    <div style="color:var(--text-2);font-size:12px;">${escapeHtml(formatDateTime(s.updatedAt || s.createdAt))}</div>
+                  </div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                    ${s.selected ? "" : `<button type="button" class="btn-primary" data-ak-select="${s._id}"><i class="fa-solid fa-check"></i> चुनें</button>`}
+                    <button type="button" style="${ghostBtn}" data-ak-delete="${s._id}"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </div>`).join("");
+            }
+            list.querySelectorAll("[data-ak-select]").forEach((btn) => {
+              btn.onclick = async () => {
+                try {
+                  await readJson(await fetch(`${API_URL}/adhura-kavya/select`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ submissionId: btn.dataset.akSelect }),
+                  }));
+                  showToast("पंक्ति चुन ली गई");
+                  loadSubmissions();
+                } catch (error) { showToast(error.message || "Select failed"); }
+              };
+            });
+            list.querySelectorAll("[data-ak-delete]").forEach((btn) => {
+              btn.onclick = async () => {
+                if (!confirm("यह पंक्ति हटानी है?")) return;
+                try {
+                  await readJson(await fetch(`${API_URL}/adhura-kavya/submissions/${btn.dataset.akDelete}`, { method: "DELETE" }));
+                  showToast("पंक्ति हटा दी गई");
+                  loadSubmissions();
+                } catch (error) { showToast(error.message || "Delete failed"); }
+              };
+            });
+            const unselect = el("akUnselect");
+            if (unselect) unselect.onclick = async () => {
+              try {
+                await readJson(await fetch(`${API_URL}/adhura-kavya/select?date=${encodeURIComponent(dateKey)}`, { method: "DELETE" }));
+                showToast("चयन हटा दिया गया");
+                loadSubmissions();
+              } catch (error) { showToast(error.message || "Failed"); }
+            };
+          } catch (error) {
+            console.error(error);
+            list.innerHTML = `<div style="color:var(--primary-700);padding:12px 0;">प्रविष्टियाँ load नहीं हो पाईं।</div>`;
+          }
+        };
+
+        const loadDate = async () => {
+          el("akDateLabel").textContent = formatLafzDate(dateKey);
+          try {
+            const data = await readJson(await fetch(`${API_URL}/adhura-kavya?date=${encodeURIComponent(dateKey)}`));
+            el("akFirst").value = data.kavya ? data.kavya.firstLine : "";
+            setStatus(data.kavya ? "Saved पंक्ति load हो गई।" : "इस तारीख़ के लिए अभी कोई पंक्ति नहीं है।", !!data.kavya);
+          } catch (error) {
+            console.error(error);
+            setStatus("Data load नहीं हो पाया।");
+          }
+          loadSubmissions();
+        };
+
+        el("akDate").onchange = (event) => {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) return;
+          dateKey = event.target.value;
+          loadDate();
+        };
+        el("akRefresh").onclick = loadSubmissions;
+
+        el("akSave").onclick = async () => {
+          const firstLine = el("akFirst").value.trim();
+          if (!firstLine) return showToast("पहली पंक्ति भरना ज़रूरी है");
+          try {
+            await readJson(await fetch(`${API_URL}/adhura-kavya`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ dateKey, firstLine }),
+            }));
+            setStatus("पहली पंक्ति save हो गई।", true);
+            showToast("आज का अधूरा काव्य save हो गया");
+            loadSubmissions();
+          } catch (error) {
+            setStatus(error.message || "Save failed");
+            showToast(error.message || "Save failed");
+          }
+        };
+
+        el("akReset").onclick = async () => {
+          if (!confirm("इस तारीख़ की पहली पंक्ति, चुनी गई पंक्ति और सभी प्रविष्टियाँ हमेशा के लिए हटानी हैं?")) return;
+          try {
+            await readJson(await fetch(`${API_URL}/adhura-kavya?date=${encodeURIComponent(dateKey)}`, { method: "DELETE" }));
+            el("akFirst").value = "";
+            setStatus("इस तारीख़ का अधूरा काव्य हटा दिया गया।", true);
+            showToast("अधूरा काव्य reset हो गया");
+            loadSubmissions();
+          } catch (error) {
+            setStatus(error.message || "Reset failed");
+            showToast(error.message || "Reset failed");
+          }
+        };
+
+        loadDate();
+      }
+
       function renderSettings() {
         const html = `<div class="page-header"><h1>Website Settings</h1></div>
               <div class="glass-table settings-card">
@@ -5956,6 +6136,7 @@
         else if (page === "poems") reloadPoemsPage();
         else if (page === "sher") renderSherPage();
         else if (page === "lafz") renderLafzPage();
+        else if (page === "adhuraKavya") renderAdhuraKavyaPage();
         else if (page === "dictionary") renderDictionaryPage();
         else if (page === "weeklyWriter") renderWeeklyWriterPage();
         else if (page === "thursdayWriter") renderThursdayWriterPage();
